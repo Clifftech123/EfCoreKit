@@ -1,1 +1,16 @@
-
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Authors>EfCoreKit</Authors>
+    <Company>EfCoreKit</Company>
+    <Product>EfCoreKit</Product>
+    <Copyright>Copyright © 2024 EfCoreKit</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>efcore;entityframework;bulk;softdelete;audit;pagination;multitenancy</PackageTags>
+  </PropertyGroup>
+</Project>

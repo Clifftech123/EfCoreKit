@@ -1,1 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <PackageId>EfCoreKit.SqlServer</PackageId>
+    <Description>SQL Server bulk operations provider for EfCoreKit.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EfCoreKit.Core\EfCoreKit.Core.csproj" />
+    <ProjectReference Include="..\EfCoreKit.BulkOperations\EfCoreKit.BulkOperations.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+
+</Project>
