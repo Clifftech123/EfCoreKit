@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using EfCoreKit.Abstractions.Exceptions;
 using EfCoreKit.Abstractions.Models;
 using Microsoft.EntityFrameworkCore;
@@ -29,9 +30,19 @@ public static class QueryableExtensions
         int pageSize,
         CancellationToken cancellationToken = default) where T : class
     {
-        // TODO: Validate page >= 1, pageSize >= 1 && <= 1000
-        // TODO: Count total, skip/take, return PagedResult
-        throw new NotImplementedException();
+    
+        ArgumentOutOfRangeException.ThrowIfLessThan(page, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(pageSize, 1000);
+
+       
+         var  totalCount = await query.CountAsync(cancellationToken);
+         var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<T>(items, totalCount, page, pageSize);
     }
 
     /// <summary>
@@ -62,7 +73,7 @@ public static class QueryableExtensions
     public static IQueryable<T> WhereIfNotNull<T, TValue>(
         this IQueryable<T> query,
         TValue? value,
-        System.Linq.Expressions.Expression<Func<T, bool>> predicate) where T : class
+        Expression<Func<T, bool>> predicate) where T : class
     {
         return value is not null ? query.Where(predicate) : query;
     }
@@ -96,8 +107,20 @@ public static class QueryableExtensions
         string propertyName,
         bool ascending = true) where T : class
     {
-        // TODO: Build expression from propertyName, call Queryable.OrderBy/OrderByDescending via reflection
-        throw new NotImplementedException();
+        var parameter =Expression.Parameter(typeof(T), "x");
+        Expression propertyAccess = parameter;
+        foreach (var prop in propertyName.Split('.'))
+        {
+            propertyAccess = Expression.PropertyOrField(propertyAccess, prop);
+        }
+        var orderByExp = Expression.Lambda(propertyAccess, parameter);
+
+        var methodName = ascending ? "OrderBy" : "OrderByDescending";
+        var method = typeof(Queryable).GetMethods()
+            .First(m => m.Name == methodName && m.GetParameters().Length == 2)
+            .MakeGenericMethod(typeof(T), propertyAccess.Type);
+
+        return (IQueryable<T>)method.Invoke(null, [query, orderByExp])!;
     }
 
     /// <summary>
@@ -112,6 +135,12 @@ public static class QueryableExtensions
         IEnumerable<FilterDescriptor>? filters) where T : class
     {
         // TODO: Iterate filters, build expressions per operator, apply Where
+        var filterList = filters?.ToList();
+         if (filterList is null || !filterList.Any()) return query;
+            if (filterList.Any(f => string.IsNullOrWhiteSpace(f.Property)))
+                throw new InvalidFilterException("Filter property name cannot be null or empty.");
+                return query.Where(f => f.)
+
         if (filters is null) return query;
         throw new NotImplementedException();
     }
@@ -230,5 +259,92 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         return await query.Select(selector).Distinct().ToListAsync(cancellationToken);
+    }
+
+    // ─── Sorting ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Applies a secondary dynamic sort to an already-ordered query.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="query">The already-ordered source query.</param>
+    /// <param name="propertyName">The property name to sort by (supports dot-separated paths).</param>
+    /// <param name="ascending"><c>true</c> for ascending; <c>false</c> for descending.</param>
+    /// <returns>The query with secondary ordering applied.</returns>
+    public static IQueryable<T> ThenByDynamic<T>(
+        this IQueryable<T> query,
+        string propertyName,
+        bool ascending = true) where T : class
+    {
+        // TODO: Same reflection pattern as OrderByDynamic but calls ThenBy / ThenByDescending
+        throw new NotImplementedException();
+    }
+
+    // ─── Keyset Pagination ───────────────────────────────────────────
+
+    /// <summary>
+    /// Paginates the query using keyset (cursor-based) pagination.
+    /// More efficient than offset pagination for large datasets.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <typeparam name="TKey">The cursor key type.</typeparam>
+    /// <param name="query">The source query (must be ordered).</param>
+    /// <param name="keySelector">Expression selecting the cursor property.</param>
+    /// <param name="cursor">The cursor value from the previous page, or <c>null</c> for the first page.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A <see cref="KeysetPagedResult{T}"/> containing the page and next/previous cursors.</returns>
+    public static async Task<KeysetPagedResult<T>> ToKeysetPagedAsync<T, TKey>(
+        this IQueryable<T> query,
+        Expression<Func<T, TKey>> keySelector,
+        TKey? cursor,
+        int pageSize,
+        CancellationToken cancellationToken = default) where T : class where TKey : IComparable<TKey>
+    {
+        // TODO: If cursor != null, apply Where(x => key > cursor)
+        // TODO: Take(pageSize + 1) to detect hasMore
+        // TODO: If items.Count > pageSize, pop last item, set hasMore = true
+        // TODO: Encode nextCursor from last item's key, previousCursor from first item's key
+        // TODO: Return KeysetPagedResult
+        throw new NotImplementedException();
+    }
+
+    // ─── Specification ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Applies an <see cref="ISpecification{T}"/> to the query, including
+    /// criteria, includes, ordering, paging, no-tracking, and split-query settings.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="query">The source query.</param>
+    /// <param name="specification">The specification to apply.</param>
+    /// <returns>The query with all specification rules applied.</returns>
+    public static IQueryable<T> ApplySpecification<T>(
+        this IQueryable<T> query,
+        Abstractions.Interfaces.ISpecification<T> specification) where T : class
+    {
+        // TODO: Apply Criteria (Where)
+        // TODO: Apply Includes (typed + string)
+        // TODO: Apply OrderBy / OrderByDescending
+        // TODO: Apply Skip / Take
+        // TODO: Apply AsNoTracking
+        // TODO: Apply AsSplitQuery
+        throw new NotImplementedException();
+    }
+
+    // ─── Tracking ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Applies <c>AsNoTracking</c> to the query for read-only scenarios.
+    /// Improves performance when entities will not be modified.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="query">The source query.</param>
+    /// <returns>The query with no-tracking enabled.</returns>
+    public static IQueryable<T> WithNoTracking<T>(
+        this IQueryable<T> query) where T : class
+    {
+        // TODO: return query.AsNoTracking()
+        throw new NotImplementedException();
     }
 }

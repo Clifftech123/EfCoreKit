@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using EfCoreKit.Abstractions.Exceptions;
+using EfCoreKit.Abstractions.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EfCoreKit.Core.Extensions;
@@ -8,11 +10,14 @@ namespace EfCoreKit.Core.Extensions;
 /// </summary>
 public static class DbSetExtensions
 {
+    // ─── Single-entity lookups ────────────────────────────────────────
+
     /// <summary>
-    /// Gets an entity by its primary key.
+    /// Returns the entity with the given primary key, or <c>null</c> if not found.
+    /// Checks the change tracker before hitting the database.
     /// </summary>
     /// <typeparam name="T">The entity type.</typeparam>
-    /// <param name="dbSet">The DbSet.</param>
+    /// <param name="dbSet">The DbSet to search.</param>
     /// <param name="id">The primary key value.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The entity if found; otherwise, <c>null</c>.</returns>
@@ -25,14 +30,15 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Gets an entity by its primary key or throws <see cref="EntityNotFoundException"/>.
+    /// Returns the entity with the given primary key, or throws
+    /// <see cref="EntityNotFoundException"/> if not found.
     /// </summary>
     /// <typeparam name="T">The entity type.</typeparam>
-    /// <param name="dbSet">The DbSet.</param>
+    /// <param name="dbSet">The DbSet to search.</param>
     /// <param name="id">The primary key value.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The entity.</returns>
-    /// <exception cref="EntityNotFoundException">Thrown when the entity is not found.</exception>
+    /// <exception cref="EntityNotFoundException">Thrown when no entity with the given key exists.</exception>
     public static async Task<T> GetByIdOrThrowAsync<T>(
         this DbSet<T> dbSet,
         object id,
@@ -43,10 +49,99 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Checks whether an entity with the given primary key exists.
+    /// Returns the first entity matching the predicate, or <c>null</c> if none match.
     /// </summary>
     /// <typeparam name="T">The entity type.</typeparam>
-    /// <param name="dbSet">The DbSet.</param>
+    /// <param name="dbSet">The DbSet to search.</param>
+    /// <param name="predicate">The filter predicate.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The first matching entity, or <c>null</c>.</returns>
+    public static async Task<T?> FirstOrDefaultAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).FirstOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the single entity matching the predicate, or <c>null</c> if none match.
+    /// Throws <see cref="InvalidOperationException"/> if more than one entity matches.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to search.</param>
+    /// <param name="predicate">The filter predicate.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The single matching entity, or <c>null</c>.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when more than one entity matches.</exception>
+    public static async Task<T?> SingleOrDefaultAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).SingleOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the last entity matching the predicate, or <c>null</c> if none match.
+    /// <para><b>Important:</b> EF Core requires the query to be ordered.
+    /// Apply an <c>OrderBy</c> before calling this method.</para>
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to search.</param>
+    /// <param name="predicate">The filter predicate.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The last matching entity, or <c>null</c>.</returns>
+    public static async Task<T?> LastOrDefaultAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).LastOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    // ─── Multi-entity lookups ─────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all entities in the set as a read-only list.
+    /// Avoid on large tables — prefer a filtered or paginated query.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to query.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>All entities as a read-only list.</returns>
+    public static async Task<IReadOnlyList<T>> GetAllAsync<T>(
+        this DbSet<T> dbSet,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await dbSet.ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns all entities matching the predicate as a read-only list.
+    /// Translates to a SQL <c>WHERE</c> clause.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to query.</param>
+    /// <param name="predicate">The filter predicate.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>All matching entities as a read-only list.</returns>
+    public static async Task<IReadOnlyList<T>> FindAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).Where(predicate).ToListAsync(cancellationToken);
+    }
+
+    // ─── Existence and counting ───────────────────────────────────────
+
+    /// <summary>
+    /// Returns <c>true</c> if an entity with the given primary key exists.
+    /// Checks the change tracker before hitting the database.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to search.</param>
     /// <param name="id">The primary key value.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns><c>true</c> if the entity exists; otherwise, <c>false</c>.</returns>
@@ -60,18 +155,255 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Checks whether any entity matches the given predicate.
+    /// Returns <c>true</c> if any entity matches the predicate.
+    /// Translates to SQL <c>EXISTS</c> — more efficient than counting for existence checks.
     /// </summary>
     /// <typeparam name="T">The entity type.</typeparam>
-    /// <param name="dbSet">The DbSet.</param>
+    /// <param name="dbSet">The DbSet to search.</param>
     /// <param name="predicate">The filter predicate.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns><c>true</c> if any entity matches; otherwise, <c>false</c>.</returns>
     public static async Task<bool> ExistsAsync<T>(
         this DbSet<T> dbSet,
-        System.Linq.Expressions.Expression<Func<T, bool>> predicate,
+        Expression<Func<T, bool>> predicate,
         CancellationToken cancellationToken = default) where T : class
     {
-        return await dbSet.AnyAsync(predicate, cancellationToken);
+        return await ((IQueryable<T>)dbSet).AnyAsync(predicate, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the number of entities, optionally filtered by <paramref name="predicate"/>.
+    /// Use <see cref="LongCountAsync"/> for tables that may exceed <see cref="int.MaxValue"/> rows.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to count.</param>
+    /// <param name="predicate">Optional filter. Pass <c>null</c> to count all rows.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The number of matching entities.</returns>
+    public static async Task<int> CountAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>>? predicate = null,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var query = (IQueryable<T>)dbSet;
+        return predicate is null
+            ? await query.CountAsync(cancellationToken)
+            : await query.CountAsync(predicate, cancellationToken);
+    }
+
+    // ─── Write operations ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Stages a range of new entities for insertion.
+    /// Changes are not persisted until <c>SaveChangesAsync</c> is called on the context.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to add to.</param>
+    /// <param name="entities">The entities to add.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public static async Task AddRangeAsync<T>(
+        this DbSet<T> dbSet,
+        IEnumerable<T> entities,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        await dbSet.AddRangeAsync(entities, cancellationToken);
+    }
+
+    /// <summary>
+    /// Loads all entities matching the predicate then stages them for deletion.
+    /// Changes are not persisted until <c>SaveChangesAsync</c> is called on the context.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to remove from.</param>
+    /// <param name="predicate">The filter identifying entities to remove.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    public static async Task RemoveRangeAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var entities = await ((IQueryable<T>)dbSet).Where(predicate).ToListAsync(cancellationToken);
+        dbSet.RemoveRange(entities);
+    }
+
+    // ─── Aggregates ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the maximum value of the selected property across all entities.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <typeparam name="TResult">The type of the selected property.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the property to maximise.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The maximum value.</returns>
+    public static async Task<TResult> MaxAsync<T, TResult>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, TResult>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).MaxAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the minimum value of the selected property across all entities.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <typeparam name="TResult">The type of the selected property.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the property to minimise.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The minimum value.</returns>
+    public static async Task<TResult> MinAsync<T, TResult>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, TResult>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).MinAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the sum of the selected <c>decimal</c> property across all entities.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>decimal</c> property to sum.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The sum.</returns>
+    public static async Task<decimal> SumAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, decimal>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).SumAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the average of the selected <c>int</c> property across all entities.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>int</c> property to average.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The average as <c>double</c>.</returns>
+    public static async Task<double> AverageAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, int>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).AverageAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the average of the selected <c>decimal</c> property.
+    /// </summary>
+    public static async Task<decimal> AverageAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, decimal>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).AverageAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the average of the selected <c>double</c> property.
+    /// </summary>
+    public static async Task<double> AverageAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, double>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).AverageAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the sum of the selected <c>int</c> property.
+    /// </summary>
+    public static async Task<int> SumAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, int>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).SumAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the sum of the selected <c>long</c> property.
+    /// </summary>
+    public static async Task<long> SumAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, long>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).SumAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the sum of the selected <c>double</c> property.
+    /// </summary>
+    public static async Task<double> SumAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, double>> selector,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).SumAsync(selector, cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if the set contains at least one entity.
+    /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to check.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns><c>true</c> if the set is non-empty; otherwise, <c>false</c>.</returns>
+    public static async Task<bool> AnyAsync<T>(
+        this DbSet<T> dbSet,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await ((IQueryable<T>)dbSet).AnyAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the total count as a <c>long</c>. Use instead of <see cref="CountAsync"/>
+    /// for tables that may exceed <see cref="int.MaxValue"/> rows.
+    /// </summary>
+    public static async Task<long> LongCountAsync<T>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, bool>>? predicate = null,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var query = (IQueryable<T>)dbSet;
+        return predicate is null
+            ? await query.LongCountAsync(cancellationToken)
+            : await query.LongCountAsync(predicate, cancellationToken);
+    }
+
+    /// <summary>
+    /// Loads all entities whose key matches one of the provided ids.
+    /// Translates to SQL WHERE key IN (...).
+    /// </summary>
+    public static async Task<IReadOnlyList<T>> GetByIdsAsync<T, TKey>(
+        this DbSet<T> dbSet,
+        Expression<Func<T, TKey>> keySelector,
+        IEnumerable<TKey> ids,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var idList = ids.ToList();
+        var parameter = keySelector.Parameters[0];
+        var containsMethod = typeof(List<TKey>).GetMethod("Contains", new[] { typeof(TKey) })!;
+        var body = Expression.Call(Expression.Constant(idList), containsMethod, keySelector.Body);
+        var lambda = Expression.Lambda<Func<T, bool>>(body, parameter);
+        return await ((IQueryable<T>)dbSet).Where(lambda).ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Stages updates for a range of entities.
+    /// Changes are staged — call SaveChangesAsync on the context to persist.
+    /// </summary>
+    public static void UpdateRange<T>(
+        this DbSet<T> dbSet,
+        IEnumerable<T> entities) where T : class
+    {
+        dbSet.UpdateRange(entities);
     }
 }

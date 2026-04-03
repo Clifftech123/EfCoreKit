@@ -84,6 +84,9 @@ public abstract class EfCoreKitDbContext<TContext> : DbContext
     private void ConfigureGlobalFilters(ModelBuilder modelBuilder)
     {
         // TODO: Apply ISoftDeletable global filter
+           
+           
+
         // TODO: Apply ITenantEntity global filter
     }
 }
