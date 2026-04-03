@@ -1,12 +1,26 @@
 using EfCoreKit.Abstractions.Interfaces;
+using EfCoreKit.Core.Filters;
+using EfCoreKit.Core.Interceptors;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EfCoreKit.Core.Context;
 
 /// <summary>
 /// Base <see cref="DbContext"/> that provides automatic soft delete, audit trail,
-/// multi-tenancy, and bulk operation support.
+/// multi-tenancy, and bulk operation support via EF Core interceptors.
 /// </summary>
+/// <remarks>
+/// This class inherits from <see cref="DbContext"/> — all standard EF Core features remain
+/// fully available. You can use LINQ queries, raw SQL (<c>Database.ExecuteSqlAsync</c>),
+/// change tracking, migrations, <c>DbSet&lt;T&gt;</c>, and any EF Core provider feature
+/// exactly as you would with a plain <see cref="DbContext"/>.
+///
+/// Save-pipeline behaviour (audit, soft delete, tenant enforcement) is handled by
+/// dedicated <see cref="Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor"/>
+/// instances registered in <see cref="OnConfiguring"/>. This means the same interceptors
+/// can be used with any <see cref="DbContext"/> — inheriting from this class is optional.
+/// </remarks>
 /// <typeparam name="TContext">The derived context type.</typeparam>
 public abstract class EfCoreKitDbContext<TContext> : DbContext
     where TContext : DbContext
@@ -14,6 +28,7 @@ public abstract class EfCoreKitDbContext<TContext> : DbContext
     private readonly EfCoreKitOptions _options;
     private readonly IUserProvider? _userProvider;
     private readonly ITenantProvider? _tenantProvider;
+    private readonly ILoggerFactory? _loggerFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EfCoreKitDbContext{TContext}"/> class.
@@ -36,16 +51,19 @@ public abstract class EfCoreKitDbContext<TContext> : DbContext
     /// <param name="kitOptions">The EfCoreKit configuration options.</param>
     /// <param name="userProvider">The user provider for audit trail.</param>
     /// <param name="tenantProvider">The tenant provider for multi-tenancy.</param>
+    /// <param name="loggerFactory">Optional logger factory for slow query logging.</param>
     protected EfCoreKitDbContext(
         DbContextOptions<TContext> options,
         EfCoreKitOptions kitOptions,
         IUserProvider? userProvider,
-        ITenantProvider? tenantProvider)
+        ITenantProvider? tenantProvider,
+        ILoggerFactory? loggerFactory = null)
         : base(options)
     {
         _options = kitOptions ?? throw new ArgumentNullException(nameof(kitOptions));
         _userProvider = userProvider;
         _tenantProvider = tenantProvider;
+        _loggerFactory = loggerFactory;
     }
 
     /// <summary>
@@ -54,10 +72,24 @@ public abstract class EfCoreKitDbContext<TContext> : DbContext
     protected EfCoreKitOptions Options => _options;
 
     /// <inheritdoc />
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        OnBeforeSaveChanges();
-        return await base.SaveChangesAsync(cancellationToken);
+        base.OnConfiguring(optionsBuilder);
+
+        if (_options.AuditTrailEnabled)
+            optionsBuilder.AddInterceptors(new AuditInterceptor(_options, _userProvider));
+
+        if (_options.SoftDeleteEnabled)
+            optionsBuilder.AddInterceptors(new SoftDeleteInterceptor(_options, _userProvider));
+
+        if (_options.MultiTenancyEnabled)
+            optionsBuilder.AddInterceptors(new TenantInterceptor(_options, _tenantProvider));
+
+        if (_options.SlowQueryThreshold is not null)
+        {
+            var logger = _loggerFactory?.CreateLogger<SlowQueryInterceptor>();
+            optionsBuilder.AddInterceptors(new SlowQueryInterceptor(_options, logger));
+        }
     }
 
     /// <inheritdoc />
@@ -68,22 +100,15 @@ public abstract class EfCoreKitDbContext<TContext> : DbContext
     }
 
     /// <summary>
-    /// Hook called before changes are saved. Handles audit trail, soft delete, and tenant assignment.
-    /// </summary>
-    private void OnBeforeSaveChanges()
-    {
-        // TODO: Implement audit trail (HandleAuditableEntities)
-        // TODO: Implement soft delete interception (HandleSoftDeletableEntities)
-        // TODO: Implement tenant assignment (HandleTenantEntities)
-    }
-
-    /// <summary>
     /// Applies global query filters for soft delete and multi-tenancy.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
     private void ConfigureGlobalFilters(ModelBuilder modelBuilder)
     {
-        // TODO: Apply ISoftDeletable global filter
-        // TODO: Apply ITenantEntity global filter
+        if (_options.SoftDeleteEnabled)
+            SoftDeleteQueryFilter.Apply(modelBuilder);
+
+        if (_options.MultiTenancyEnabled)
+            TenantQueryFilter.Apply(modelBuilder, _tenantProvider);
     }
 }
