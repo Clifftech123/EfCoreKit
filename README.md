@@ -80,6 +80,20 @@ Install just what you need, or grab the umbrella package:
 dotnet add package EfCoreKit
 ```
 
+## Documentation
+
+Each feature has a dedicated guide with full examples, configuration options, and best practices:
+
+| Guide | What You'll Learn |
+|-------|-------------------|
+| [Getting Started](docs/getting-started.md) | Installation, DbContext setup, DI registration |
+| [Soft Delete](docs/soft-delete.md) | ISoftDeletable, cascade delete, restoring records |
+| [Audit Trail](docs/audit-trail.md) | IAuditable, auto-stamping, CreatedAt/CreatedBy protection |
+| [Multi-Tenancy](docs/multi-tenancy.md) | ITenantEntity, automatic filtering, tenant validation |
+| [Pagination](docs/pagination.md) | Offset and keyset pagination, PagedResult, KeysetPagedResult |
+| [Query Helpers](docs/query-helpers.md) | WhereIf, OrderByDynamic, specifications, DbSet extensions |
+| [Bulk Operations](docs/bulk-operations.md) | BulkInsert/Update/Delete/Upsert, BulkConfig tuning |
+
 ## License
 
 MIT — free for personal and commercial use, forever.
