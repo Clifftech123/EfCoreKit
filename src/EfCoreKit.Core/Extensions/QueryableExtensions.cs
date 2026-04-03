@@ -9,6 +9,12 @@ namespace EfCoreKit.Core.Extensions;
 /// Extension methods for <see cref="IQueryable{T}"/> providing pagination,
 /// conditional filtering, and dynamic ordering.
 /// </summary>
+/// <remarks>
+/// These are additive convenience methods — all standard LINQ and EF Core
+/// <see cref="IQueryable{T}"/> operators (<c>Where</c>, <c>Select</c>, <c>Include</c>,
+/// <c>GroupBy</c>, <c>Join</c>, etc.) continue to work and can be mixed freely
+/// with the helpers below.
+/// </remarks>
 public static class QueryableExtensions
 {
     /// <summary>

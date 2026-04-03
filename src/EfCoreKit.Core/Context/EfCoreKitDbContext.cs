@@ -7,6 +7,15 @@ namespace EfCoreKit.Core.Context;
 /// Base <see cref="DbContext"/> that provides automatic soft delete, audit trail,
 /// multi-tenancy, and bulk operation support.
 /// </summary>
+/// <remarks>
+/// This class inherits from <see cref="DbContext"/> — all standard EF Core features remain
+/// fully available. You can use LINQ queries, raw SQL (<c>Database.ExecuteSqlAsync</c>),
+/// change tracking, migrations, <c>DbSet&lt;T&gt;</c>, and any EF Core provider feature
+/// exactly as you would with a plain <see cref="DbContext"/>.
+///
+/// EfCoreKit only adds behaviour in the save pipeline (<c>SaveChangesAsync</c>) and
+/// through optional global query filters — it never restricts or hides native APIs.
+/// </remarks>
 /// <typeparam name="TContext">The derived context type.</typeparam>
 public abstract class EfCoreKitDbContext<TContext> : DbContext
     where TContext : DbContext

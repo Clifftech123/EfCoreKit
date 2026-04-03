@@ -8,6 +8,12 @@ namespace EfCoreKit.Core.Extensions;
 /// <summary>
 /// Extension methods for <see cref="DbSet{T}"/> providing common query shortcuts.
 /// </summary>
+/// <remarks>
+/// These are additive convenience methods — all standard <see cref="DbSet{T}"/> and
+/// EF Core APIs (<c>Add</c>, <c>Attach</c>, <c>Entry</c>, <c>FromSqlRaw</c>,
+/// <c>ExecuteDeleteAsync</c>, <c>ExecuteUpdateAsync</c>, etc.) remain fully available
+/// and can be used alongside these helpers.
+/// </remarks>
 public static class DbSetExtensions
 {
     // ─── Single-entity lookups ────────────────────────────────────────
