@@ -21,6 +21,11 @@ public static class DbSetExtensions
     /// <param name="id">The primary key value.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The entity if found; otherwise, <c>null</c>.</returns>
+    /// <example>
+    /// <code>
+    /// Order? order = await context.Orders.GetByIdAsync(orderId);
+    /// </code>
+    /// </example>
     public static async Task<T?> GetByIdAsync<T>(
         this DbSet<T> dbSet,
         object id,
@@ -39,6 +44,11 @@ public static class DbSetExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The entity.</returns>
     /// <exception cref="EntityNotFoundException">Thrown when no entity with the given key exists.</exception>
+    /// <example>
+    /// <code>
+    /// Order order = await context.Orders.GetByIdOrThrowAsync(orderId);
+    /// </code>
+    /// </example>
     public static async Task<T> GetByIdOrThrowAsync<T>(
         this DbSet<T> dbSet,
         object id,
@@ -56,6 +66,12 @@ public static class DbSetExtensions
     /// <param name="predicate">The filter predicate.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The first matching entity, or <c>null</c>.</returns>
+    /// <example>
+    /// <code>
+    /// Customer? customer = await context.Customers
+    ///     .FirstOrDefaultAsync(c => c.Email == "jane@example.com");
+    /// </code>
+    /// </example>
     public static async Task<T?> FirstOrDefaultAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>> predicate,
@@ -74,6 +90,12 @@ public static class DbSetExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The single matching entity, or <c>null</c>.</returns>
     /// <exception cref="InvalidOperationException">Thrown when more than one entity matches.</exception>
+    /// <example>
+    /// <code>
+    /// Customer? customer = await context.Customers
+    ///     .SingleOrDefaultAsync(c => c.TaxId == taxId);
+    /// </code>
+    /// </example>
     public static async Task<T?> SingleOrDefaultAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>> predicate,
@@ -92,6 +114,12 @@ public static class DbSetExtensions
     /// <param name="predicate">The filter predicate.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The last matching entity, or <c>null</c>.</returns>
+    /// <example>
+    /// <code>
+    /// Order? latest = await context.Orders
+    ///     .LastOrDefaultAsync(o => o.CustomerId == customerId);
+    /// </code>
+    /// </example>
     public static async Task<T?> LastOrDefaultAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>> predicate,
@@ -110,6 +138,11 @@ public static class DbSetExtensions
     /// <param name="dbSet">The DbSet to query.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>All entities as a read-only list.</returns>
+    /// <example>
+    /// <code>
+    /// IReadOnlyList&lt;Category&gt; categories = await context.Categories.GetAllAsync();
+    /// </code>
+    /// </example>
     public static async Task<IReadOnlyList<T>> GetAllAsync<T>(
         this DbSet<T> dbSet,
         CancellationToken cancellationToken = default) where T : class
@@ -126,6 +159,12 @@ public static class DbSetExtensions
     /// <param name="predicate">The filter predicate.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>All matching entities as a read-only list.</returns>
+    /// <example>
+    /// <code>
+    /// IReadOnlyList&lt;Product&gt; cheap = await context.Products
+    ///     .FindAsync(p => p.Price &lt; 10m);
+    /// </code>
+    /// </example>
     public static async Task<IReadOnlyList<T>> FindAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>> predicate,
@@ -145,6 +184,11 @@ public static class DbSetExtensions
     /// <param name="id">The primary key value.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns><c>true</c> if the entity exists; otherwise, <c>false</c>.</returns>
+    /// <example>
+    /// <code>
+    /// bool exists = await context.Orders.ExistsAsync(orderId);
+    /// </code>
+    /// </example>
     public static async Task<bool> ExistsAsync<T>(
         this DbSet<T> dbSet,
         object id,
@@ -163,6 +207,11 @@ public static class DbSetExtensions
     /// <param name="predicate">The filter predicate.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns><c>true</c> if any entity matches; otherwise, <c>false</c>.</returns>
+    /// <example>
+    /// <code>
+    /// bool hasVip = await context.Customers.ExistsAsync(c => c.IsVip);
+    /// </code>
+    /// </example>
     public static async Task<bool> ExistsAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>> predicate,
@@ -180,6 +229,12 @@ public static class DbSetExtensions
     /// <param name="predicate">Optional filter. Pass <c>null</c> to count all rows.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The number of matching entities.</returns>
+    /// <example>
+    /// <code>
+    /// int total  = await context.Products.CountAsync();
+    /// int active = await context.Products.CountAsync(p => p.IsActive);
+    /// </code>
+    /// </example>
     public static async Task<int> CountAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>>? predicate = null,
@@ -201,6 +256,13 @@ public static class DbSetExtensions
     /// <param name="dbSet">The DbSet to add to.</param>
     /// <param name="entities">The entities to add.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <example>
+    /// <code>
+    /// var newOrders = new[] { order1, order2, order3 };
+    /// await context.Orders.AddRangeAsync(newOrders);
+    /// await context.SaveChangesAsync();
+    /// </code>
+    /// </example>
     public static async Task AddRangeAsync<T>(
         this DbSet<T> dbSet,
         IEnumerable<T> entities,
@@ -217,6 +279,12 @@ public static class DbSetExtensions
     /// <param name="dbSet">The DbSet to remove from.</param>
     /// <param name="predicate">The filter identifying entities to remove.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <example>
+    /// <code>
+    /// await context.Orders.RemoveRangeAsync(o => o.Status == OrderStatus.Cancelled);
+    /// await context.SaveChangesAsync();
+    /// </code>
+    /// </example>
     public static async Task RemoveRangeAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>> predicate,
@@ -237,6 +305,11 @@ public static class DbSetExtensions
     /// <param name="selector">Expression selecting the property to maximise.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The maximum value.</returns>
+    /// <example>
+    /// <code>
+    /// decimal highest = await context.Orders.MaxAsync(o => o.Total);
+    /// </code>
+    /// </example>
     public static async Task<TResult> MaxAsync<T, TResult>(
         this DbSet<T> dbSet,
         Expression<Func<T, TResult>> selector,
@@ -254,6 +327,11 @@ public static class DbSetExtensions
     /// <param name="selector">Expression selecting the property to minimise.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The minimum value.</returns>
+    /// <example>
+    /// <code>
+    /// decimal lowest = await context.Orders.MinAsync(o => o.Total);
+    /// </code>
+    /// </example>
     public static async Task<TResult> MinAsync<T, TResult>(
         this DbSet<T> dbSet,
         Expression<Func<T, TResult>> selector,
@@ -270,6 +348,11 @@ public static class DbSetExtensions
     /// <param name="selector">Expression selecting the <c>decimal</c> property to sum.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The sum.</returns>
+    /// <example>
+    /// <code>
+    /// decimal revenue = await context.Orders.SumAsync(o => o.Total);
+    /// </code>
+    /// </example>
     public static async Task<decimal> SumAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, decimal>> selector,
@@ -286,6 +369,11 @@ public static class DbSetExtensions
     /// <param name="selector">Expression selecting the <c>int</c> property to average.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The average as <c>double</c>.</returns>
+    /// <example>
+    /// <code>
+    /// double avgQty = await context.OrderLines.AverageAsync(l => l.Quantity);
+    /// </code>
+    /// </example>
     public static async Task<double> AverageAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, int>> selector,
@@ -295,8 +383,18 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Returns the average of the selected <c>decimal</c> property.
+    /// Returns the average of the selected <c>decimal</c> property across all entities.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>decimal</c> property to average.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The average as <c>decimal</c>.</returns>
+    /// <example>
+    /// <code>
+    /// decimal avgPrice = await context.Products.AverageAsync(p => p.Price);
+    /// </code>
+    /// </example>
     public static async Task<decimal> AverageAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, decimal>> selector,
@@ -306,8 +404,13 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Returns the average of the selected <c>double</c> property.
+    /// Returns the average of the selected <c>double</c> property across all entities.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>double</c> property to average.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The average as <c>double</c>.</returns>
     public static async Task<double> AverageAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, double>> selector,
@@ -317,8 +420,13 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Returns the sum of the selected <c>int</c> property.
+    /// Returns the sum of the selected <c>int</c> property across all entities.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>int</c> property to sum.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The sum as <c>int</c>.</returns>
     public static async Task<int> SumAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, int>> selector,
@@ -328,8 +436,13 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Returns the sum of the selected <c>long</c> property.
+    /// Returns the sum of the selected <c>long</c> property across all entities.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>long</c> property to sum.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The sum as <c>long</c>.</returns>
     public static async Task<long> SumAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, long>> selector,
@@ -339,8 +452,13 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Returns the sum of the selected <c>double</c> property.
+    /// Returns the sum of the selected <c>double</c> property across all entities.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to aggregate.</param>
+    /// <param name="selector">Expression selecting the <c>double</c> property to sum.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The sum as <c>double</c>.</returns>
     public static async Task<double> SumAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, double>> selector,
@@ -356,6 +474,11 @@ public static class DbSetExtensions
     /// <param name="dbSet">The DbSet to check.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns><c>true</c> if the set is non-empty; otherwise, <c>false</c>.</returns>
+    /// <example>
+    /// <code>
+    /// bool hasOrders = await context.Orders.AnyAsync();
+    /// </code>
+    /// </example>
     public static async Task<bool> AnyAsync<T>(
         this DbSet<T> dbSet,
         CancellationToken cancellationToken = default) where T : class
@@ -367,6 +490,12 @@ public static class DbSetExtensions
     /// Returns the total count as a <c>long</c>. Use instead of <see cref="CountAsync"/>
     /// for tables that may exceed <see cref="int.MaxValue"/> rows.
     /// </summary>
+    /// <example>
+    /// <code>
+    /// long total = await context.AuditLogs.LongCountAsync();
+    /// long errors = await context.AuditLogs.LongCountAsync(l => l.Level == "Error");
+    /// </code>
+    /// </example>
     public static async Task<long> LongCountAsync<T>(
         this DbSet<T> dbSet,
         Expression<Func<T, bool>>? predicate = null,
@@ -379,9 +508,23 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Loads all entities whose key matches one of the provided ids.
-    /// Translates to SQL WHERE key IN (...).
+    /// Returns all entities whose key is contained in <paramref name="ids"/>.
+    /// Translates to a single SQL <c>WHERE key IN (...)</c> query — no N+1.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <typeparam name="TKey">The key property type.</typeparam>
+    /// <param name="dbSet">The DbSet to query.</param>
+    /// <param name="keySelector">Expression selecting the key property (e.g. <c>x =&gt; x.Id</c>).</param>
+    /// <param name="ids">The key values to match.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>All matching entities as a read-only list.</returns>
+    /// <example>
+    /// <code>
+    /// var orderIds = new[] { 1, 2, 3 };
+    /// IReadOnlyList&lt;Order&gt; orders = await context.Orders
+    ///     .GetByIdsAsync(o => o.Id, orderIds);
+    /// </code>
+    /// </example>
     public static async Task<IReadOnlyList<T>> GetByIdsAsync<T, TKey>(
         this DbSet<T> dbSet,
         Expression<Func<T, TKey>> keySelector,
@@ -397,9 +540,20 @@ public static class DbSetExtensions
     }
 
     /// <summary>
-    /// Stages updates for a range of entities.
-    /// Changes are staged — call SaveChangesAsync on the context to persist.
+    /// Stages a range of existing entities for update.
+    /// Changes are not persisted until <c>SaveChangesAsync</c> is called on the context.
     /// </summary>
+    /// <typeparam name="T">The entity type.</typeparam>
+    /// <param name="dbSet">The DbSet to update.</param>
+    /// <param name="entities">The entities to update.</param>
+    /// <example>
+    /// <code>
+    /// var products = await context.Products.FindAsync(p => p.NeedsRestock);
+    /// foreach (var p in products) p.Stock += 100;
+    /// context.Products.UpdateRange(products);
+    /// await context.SaveChangesAsync();
+    /// </code>
+    /// </example>
     public static void UpdateRange<T>(
         this DbSet<T> dbSet,
         IEnumerable<T> entities) where T : class
