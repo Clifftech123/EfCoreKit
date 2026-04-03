@@ -1,7 +1,6 @@
 using EfCoreKit.Abstractions.Interfaces;
 using EfCoreKit.Core.Context;
 using EfCoreKit.Core.Interceptors;
-using EfCoreKit.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -75,12 +74,6 @@ public static class ServiceCollectionExtensions
         if (kitOptions.SlowQueryThreshold is not null)
         {
             services.AddScoped<SlowQueryInterceptor>();
-        }
-
-        // Register services
-        if (kitOptions.FullAuditLogEnabled)
-        {
-            services.AddScoped<AuditService>();
         }
 
         // Register the DbContext with interceptors wired in

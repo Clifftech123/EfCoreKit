@@ -1,4 +1,5 @@
 using EfCoreKit.Abstractions.Interfaces;
+using EfCoreKit.Core.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace EfCoreKit.Core.Extensions;
@@ -6,6 +7,11 @@ namespace EfCoreKit.Core.Extensions;
 /// <summary>
 /// Extension methods for <see cref="ModelBuilder"/> to configure EfCoreKit conventions.
 /// </summary>
+/// <remarks>
+/// These are additive configurations — all standard <see cref="ModelBuilder"/> APIs
+/// (<c>Entity</c>, <c>HasSequence</c>, <c>ApplyConfigurationsFromAssembly</c>, etc.)
+/// remain fully available and can be used alongside these helpers.
+/// </remarks>
 public static class ModelBuilderExtensions
 {
     /// <summary>
@@ -13,10 +19,27 @@ public static class ModelBuilderExtensions
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
     /// <returns>The model builder for chaining.</returns>
+    /// <example>
+    /// <code>
+    /// protected override void OnModelCreating(ModelBuilder modelBuilder)
+    /// {
+    ///     base.OnModelCreating(modelBuilder);
+    ///     modelBuilder.ApplyConcurrencyTokens();
+    /// }
+    /// </code>
+    /// </example>
     public static ModelBuilder ApplyConcurrencyTokens(this ModelBuilder modelBuilder)
     {
-        // TODO: Iterate entity types implementing IConcurrencyAware
-        // - Configure RowVersion as a concurrency token / row version
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (!typeof(IConcurrencyAware).IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            modelBuilder.Entity(entityType.ClrType)
+                .Property(nameof(IConcurrencyAware.RowVersion))
+                .IsRowVersion();
+        }
+
         return modelBuilder;
     }
 
@@ -25,9 +48,18 @@ public static class ModelBuilderExtensions
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
     /// <returns>The model builder for chaining.</returns>
+    /// <example>
+    /// <code>
+    /// protected override void OnModelCreating(ModelBuilder modelBuilder)
+    /// {
+    ///     base.OnModelCreating(modelBuilder);
+    ///     modelBuilder.ApplySoftDeleteFilters();
+    /// }
+    /// </code>
+    /// </example>
     public static ModelBuilder ApplySoftDeleteFilters(this ModelBuilder modelBuilder)
     {
-        // TODO: Delegate to SoftDeleteQueryFilter.Apply
+        SoftDeleteQueryFilter.Apply(modelBuilder);
         return modelBuilder;
     }
 
@@ -37,9 +69,18 @@ public static class ModelBuilderExtensions
     /// <param name="modelBuilder">The model builder.</param>
     /// <param name="tenantProvider">The tenant provider.</param>
     /// <returns>The model builder for chaining.</returns>
+    /// <example>
+    /// <code>
+    /// protected override void OnModelCreating(ModelBuilder modelBuilder)
+    /// {
+    ///     base.OnModelCreating(modelBuilder);
+    ///     modelBuilder.ApplyTenantFilters(_tenantProvider);
+    /// }
+    /// </code>
+    /// </example>
     public static ModelBuilder ApplyTenantFilters(this ModelBuilder modelBuilder, ITenantProvider? tenantProvider)
     {
-        // TODO: Delegate to TenantQueryFilter.Apply
+        TenantQueryFilter.Apply(modelBuilder, tenantProvider);
         return modelBuilder;
     }
 }
