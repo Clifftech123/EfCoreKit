@@ -91,7 +91,6 @@ public abstract class EfCoreDbContext<TContext> : DbContext
             var logger = _loggerFactory?.CreateLogger<SlowQueryInterceptor>();
             optionsBuilder.AddInterceptors(new SlowQueryInterceptor(_options, logger));
         }
-
     }
 
     /// <inheritdoc />

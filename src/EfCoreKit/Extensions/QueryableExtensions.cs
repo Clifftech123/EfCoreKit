@@ -216,28 +216,36 @@ public static class QueryableExtensions
 
             var propertyType = propertyAccess.Type;
             var underlyingType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
-            var convertedValue = filter.Value is null
-                ? null
-                : Convert.ChangeType(filter.Value, underlyingType);
-            var constant = Expression.Constant(convertedValue, propertyType);
 
-            Expression body = filter.Operator.ToLowerInvariant() switch
+            var op = filter.Operator.ToLowerInvariant();
+
+            // Only convert scalar values; in/between/isnull/isnotnull handle their own values.
+            Expression? constant = null;
+            if (op is not ("in" or "between" or "isnull" or "isnotnull"))
             {
-                "eq"         => Expression.Equal(propertyAccess, constant),
-                "ne"         => Expression.NotEqual(propertyAccess, constant),
-                "gt"         => Expression.GreaterThan(propertyAccess, constant),
-                "gte"        => Expression.GreaterThanOrEqual(propertyAccess, constant),
-                "lt"         => Expression.LessThan(propertyAccess, constant),
-                "lte"        => Expression.LessThanOrEqual(propertyAccess, constant),
+                var convertedValue = filter.Value is null
+                    ? null
+                    : Convert.ChangeType(filter.Value, underlyingType);
+                constant = Expression.Constant(convertedValue, propertyType);
+            }
+
+            Expression body = op switch
+            {
+                "eq"         => Expression.Equal(propertyAccess, constant!),
+                "ne"         => Expression.NotEqual(propertyAccess, constant!),
+                "gt"         => Expression.GreaterThan(propertyAccess, constant!),
+                "gte"        => Expression.GreaterThanOrEqual(propertyAccess, constant!),
+                "lt"         => Expression.LessThan(propertyAccess, constant!),
+                "lte"        => Expression.LessThanOrEqual(propertyAccess, constant!),
                 "contains"   => Expression.Call(propertyAccess,
                                     typeof(string).GetMethod("Contains", [typeof(string)])!,
-                                    constant),
+                                    constant!),
                 "startswith" => Expression.Call(propertyAccess,
                                     typeof(string).GetMethod("StartsWith", [typeof(string)])!,
-                                    constant),
+                                    constant!),
                 "endswith"   => Expression.Call(propertyAccess,
                                     typeof(string).GetMethod("EndsWith", [typeof(string)])!,
-                                    constant),
+                                    constant!),
                 "isnull"     => Expression.Equal(propertyAccess,
                                     Expression.Constant(null, propertyType)),
                 "isnotnull"  => Expression.NotEqual(propertyAccess,
@@ -505,7 +513,7 @@ public static class QueryableExtensions
     // ─── Specification ────────────────────────────────────────────────
 
     /// <summary>
-    /// Applies all rules from an <see cref="Abstractions.Interfaces.ISpecification{T}"/> to the query —
+    /// Applies all rules from an <see cref="ISpecification{T}"/> to the query —
     /// criteria, includes, ordering, paging, no-tracking, and split-query settings.
     /// Lets callers express the full shape of a query as a single reusable object.
     /// </summary>
