@@ -30,10 +30,12 @@ public class MultiTenancyTests
         _provider.CurrentTenantId = "A";
         ctx.TenantNotes.Add(new TenantNote { Content = "A note" });
         await ctx.SaveChangesAsync();
+        ctx.ChangeTracker.Clear();
 
         _provider.CurrentTenantId = "B";
         ctx.TenantNotes.Add(new TenantNote { Content = "B note" });
         await ctx.SaveChangesAsync();
+        ctx.ChangeTracker.Clear();
 
         _provider.CurrentTenantId = "A";
         var aResults = await ctx.TenantNotes.ToListAsync();

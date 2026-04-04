@@ -2,6 +2,7 @@ using EfCoreKit.Context;
 using EfCoreKit.Entities;
 using EfCoreKit.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EfCoreKit.Tests.Integration;
 
@@ -29,6 +30,29 @@ public class AuditedItem : AuditableEntity
 public class TenantNote : FullEntity
 {
     public string Content { get; set; } = string.Empty;
+}
+
+// ── Entities for cascade soft-delete tests ────────────────────────────────────
+
+public class Invoice : SoftDeletableEntity
+{
+    public string Number { get; set; } = string.Empty;
+    public List<InvoiceLine> Lines { get; set; } = [];
+}
+
+public class InvoiceLine : SoftDeletableEntity
+{
+    public int InvoiceId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
+
+// ── Entity for full audit log tests ───────────────────────────────────────────
+
+public class FullAuditedItem : AuditableEntity, IFullAuditable
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal Value { get; set; }
 }
 
 // ── DbContext types (one per feature combination) ─────────────────────────────
@@ -87,6 +111,55 @@ public class TenantDbContext : EfCoreDbContext<TenantDbContext>
         : base(options, kitOptions, null, tenant) { }
 }
 
+/// <summary>Context with cascade soft-delete enabled.</summary>
+public class CascadeSoftDeleteDbContext : EfCoreDbContext<CascadeSoftDeleteDbContext>
+{
+    public DbSet<Invoice>     Invoices     => Set<Invoice>();
+    public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
+    public DbSet<AuditLog>    AuditLogs    => Set<AuditLog>();
+
+    public CascadeSoftDeleteDbContext(
+        DbContextOptions<CascadeSoftDeleteDbContext> options,
+        EfCoreOptions kitOptions,
+        IUserProvider? user = null)
+        : base(options, kitOptions, user, null) { }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Invoice>()
+            .HasMany(i => i.Lines)
+            .WithOne()
+            .HasForeignKey(l => l.InvoiceId);
+    }
+}
+
+/// <summary>Context with full audit log enabled.</summary>
+public class FullAuditDbContext : EfCoreDbContext<FullAuditDbContext>
+{
+    public DbSet<FullAuditedItem> FullAuditedItems => Set<FullAuditedItem>();
+    public DbSet<AuditLog>        AuditLogs        => Set<AuditLog>();
+
+    public FullAuditDbContext(
+        DbContextOptions<FullAuditDbContext> options,
+        EfCoreOptions kitOptions,
+        IUserProvider? user = null)
+        : base(options, kitOptions, user, null) { }
+}
+
+/// <summary>Context with slow query logging enabled.</summary>
+public class SlowQueryDbContext : EfCoreDbContext<SlowQueryDbContext>
+{
+    public DbSet<Product>  Products  => Set<Product>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public SlowQueryDbContext(
+        DbContextOptions<SlowQueryDbContext> options,
+        EfCoreOptions kitOptions,
+        ILoggerFactory? loggerFactory = null)
+        : base(options, kitOptions, null, null, loggerFactory) { }
+}
+
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 public static class DbFactory
@@ -126,6 +199,36 @@ public static class DbFactory
         var opts = new DbContextOptionsBuilder<TenantDbContext>()
             .UseSqlite("DataSource=:memory:").Options;
         var ctx = new TenantDbContext(opts, new EfCoreOptions().EnableSoftDelete().EnableMultiTenancy(), provider);
+        ctx.Database.OpenConnection();
+        ctx.Database.EnsureCreated();
+        return ctx;
+    }
+
+    public static CascadeSoftDeleteDbContext CreateWithCascadeSoftDelete(IUserProvider? user = null)
+    {
+        var opts = new DbContextOptionsBuilder<CascadeSoftDeleteDbContext>()
+            .UseSqlite("DataSource=:memory:").Options;
+        var ctx = new CascadeSoftDeleteDbContext(opts, new EfCoreOptions().EnableSoftDelete(cascade: true), user);
+        ctx.Database.OpenConnection();
+        ctx.Database.EnsureCreated();
+        return ctx;
+    }
+
+    public static FullAuditDbContext CreateWithFullAudit(IUserProvider? user = null)
+    {
+        var opts = new DbContextOptionsBuilder<FullAuditDbContext>()
+            .UseSqlite("DataSource=:memory:").Options;
+        var ctx = new FullAuditDbContext(opts, new EfCoreOptions().EnableAuditTrail(fullLog: true), user);
+        ctx.Database.OpenConnection();
+        ctx.Database.EnsureCreated();
+        return ctx;
+    }
+
+    public static SlowQueryDbContext CreateWithSlowQueryLogging(TimeSpan threshold, ILoggerFactory? loggerFactory = null)
+    {
+        var opts = new DbContextOptionsBuilder<SlowQueryDbContext>()
+            .UseSqlite("DataSource=:memory:").Options;
+        var ctx = new SlowQueryDbContext(opts, new EfCoreOptions().LogSlowQueries(threshold), loggerFactory);
         ctx.Database.OpenConnection();
         ctx.Database.EnsureCreated();
         return ctx;
