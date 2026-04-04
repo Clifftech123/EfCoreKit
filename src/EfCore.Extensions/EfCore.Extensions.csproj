@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>EfCore.Extensions</PackageId>
+    <Description>
+      The ultimate EF Core extensions library. Bulk operations, soft delete, audit trail,
+      pagination, query helpers, multi-tenancy, and 80+ more features. 100% free. MIT licensed.
+    </Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EfCore.Extensions.Core\EfCore.Extensions.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+</Project>

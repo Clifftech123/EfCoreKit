@@ -1,6 +1,6 @@
 # Multi-Tenancy
 
-EfCoreKit provides automatic tenant isolation so each tenant only sees and modifies their own data.
+EfCore.Extensions provides automatic tenant isolation so each tenant only sees and modifies their own data.
 
 ## How It Works
 
@@ -12,17 +12,22 @@ Two mechanisms work together:
 ## Setup
 
 ```csharp
-builder.Services.AddEfCoreKit<AppDbContext>(
+builder.Services.AddEfCoreExtensions<AppDbContext>(
     options => options.UseSqlServer(connectionString),
     kit => kit
         .EnableMultiTenancy()
-        .UseTenantProvider<HttpContextTenantProvider>()
-);
+        .UseTenantProvider<HttpContextTenantProvider>());
 ```
 
 ## Implement the Interface
 
-Add `ITenantEntity` to entities that should be scoped per tenant:
+Use `FullEntity` to get tenant support alongside audit trail and soft delete:
+
+```csharp
+public class Invoice : FullEntity { }
+```
+
+Or implement `ITenantEntity` directly on any existing entity:
 
 ```csharp
 public class Invoice : ITenantEntity
@@ -30,14 +35,13 @@ public class Invoice : ITenantEntity
     public int Id { get; set; }
     public decimal Amount { get; set; }
 
-    // ITenantEntity
     public string? TenantId { get; set; }
 }
 ```
 
 ## ITenantProvider
 
-Implement `ITenantProvider` to tell EfCoreKit how to resolve the current tenant:
+Implement `ITenantProvider` to tell EfCore.Extensions how to resolve the current tenant:
 
 ```csharp
 public interface ITenantProvider
@@ -46,7 +50,7 @@ public interface ITenantProvider
 }
 ```
 
-### ASP.NET Core Example
+### ASP.NET Core — From Claims
 
 ```csharp
 public class HttpContextTenantProvider : ITenantProvider
@@ -61,7 +65,7 @@ public class HttpContextTenantProvider : ITenantProvider
 }
 ```
 
-### Header-Based Tenant Resolution
+### ASP.NET Core — From Header
 
 ```csharp
 public class HeaderTenantProvider : ITenantProvider
@@ -84,7 +88,7 @@ public class HeaderTenantProvider : ITenantProvider
 var invoice = new Invoice { Amount = 100.00m };
 context.Invoices.Add(invoice);
 await context.SaveChangesAsync();
-// invoice.TenantId == "tenant-abc" (from ITenantProvider, assigned automatically)
+// invoice.TenantId == "tenant-abc" (assigned automatically from ITenantProvider)
 ```
 
 If `TenantId` is already set on the entity, the interceptor won't overwrite it.
@@ -92,10 +96,9 @@ If `TenantId` is already set on the entity, the interceptor won't overwrite it.
 ### Update — Tenant Ownership Validation
 
 ```csharp
-// This throws TenantMismatchException if the invoice belongs to a different tenant
-var invoice = await context.Invoices.FindAsync(invoiceId);
+// Throws TenantMismatchException if the invoice belongs to a different tenant
 invoice.Amount = 200.00m;
-await context.SaveChangesAsync(); // Validates TenantId matches current tenant
+await context.SaveChangesAsync();
 ```
 
 The interceptor also prevents `TenantId` from being changed during updates.
@@ -105,21 +108,20 @@ The interceptor also prevents `TenantId` from being changed during updates.
 ```csharp
 // Only returns invoices for the current tenant
 var invoices = await context.Invoices.ToListAsync();
-// SQL: SELECT * FROM Invoices WHERE TenantId = 'tenant-abc' AND ...
+// SQL: SELECT * FROM Invoices WHERE TenantId = 'tenant-abc'
 ```
 
 ### Bypass Tenant Filter (Admin Queries)
 
 ```csharp
-// Returns all invoices across all tenants
 var allInvoices = await context.Invoices
     .IgnoreQueryFilters()
-    .ToListAsync();
+    .ToListAsync(); // all tenants
 ```
 
 ## TenantMismatchException
 
-If a user tries to modify an entity belonging to a different tenant, a `TenantMismatchException` is thrown:
+If a user tries to modify an entity belonging to a different tenant, a `TenantMismatchException` is thrown before hitting the database:
 
 ```csharp
 try
@@ -135,10 +137,11 @@ catch (TenantMismatchException ex)
 
 ## Combining with Other Features
 
-Multi-tenancy works alongside soft delete and audit trail. When all three are enabled on an entity:
+When soft delete, audit trail, and multi-tenancy are all enabled:
 
-- **Insert:** `TenantId`, `CreatedAt`, `CreatedBy` are all set automatically
-- **Update:** Tenant ownership is validated, `UpdatedAt`/`UpdatedBy` are set
-- **Delete:** Soft delete is applied, tenant is validated, and audit fields are updated
-- **Query:** Both `IsDeleted = false` and `TenantId = @current` filters are applied
-
+| Operation | What happens automatically |
+|-----------|---------------------------|
+| Insert | `TenantId`, `CreatedAt`, `CreatedBy` all set |
+| Update | Tenant validated, `UpdatedAt`/`UpdatedBy` set |
+| Delete | Soft deleted, tenant validated, audit fields updated |
+| Query | Both `IsDeleted = false` and `TenantId = @current` filters applied |

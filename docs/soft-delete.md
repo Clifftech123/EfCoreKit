@@ -5,24 +5,33 @@ Soft delete marks records as deleted instead of physically removing them from th
 ## How It Works
 
 1. **Interceptor** — When you call `context.Remove(entity)` or set `EntityState.Deleted`, the `SoftDeleteInterceptor` intercepts the operation, changes the state to `Modified`, and sets `IsDeleted = true`, `DeletedAt`, and `DeletedBy`.
-2. **Global Query Filter** — A query filter is automatically applied so that `WHERE IsDeleted = false` is added to every query. Soft-deleted rows are invisible by default.
+2. **Global Query Filter** — A query filter automatically adds `WHERE IsDeleted = false` to every query. Soft-deleted rows are invisible by default.
 
 Both sync (`SaveChanges`) and async (`SaveChangesAsync`) paths are handled.
 
 ## Setup
 
 ```csharp
-builder.Services.AddEfCoreKit<AppDbContext>(
+builder.Services.AddEfCoreExtensions<AppDbContext>(
     options => options.UseSqlServer(connectionString),
     kit => kit
-        .EnableSoftDelete(cascade: true) // cascade: optional, soft-deletes child entities too
-        .UseUserProvider<HttpContextUserProvider>()
-);
+        .EnableSoftDelete()                  // soft delete only
+        .EnableSoftDelete(cascade: true)     // also soft-deletes loaded child entities
+        .UseUserProvider<HttpContextUserProvider>());
 ```
 
 ## Implement the Interface
 
-Add `ISoftDeletable` to any entity you want to soft-delete:
+The easiest way is to inherit `SoftDeletableEntity` (or `SoftDeletableEntity<TKey>`):
+
+```csharp
+public class Order : SoftDeletableEntity
+{
+    public string Description { get; set; } = string.Empty;
+}
+```
+
+Or implement `ISoftDeletable` directly:
 
 ```csharp
 public class Order : ISoftDeletable
@@ -30,10 +39,9 @@ public class Order : ISoftDeletable
     public int Id { get; set; }
     public string Description { get; set; } = string.Empty;
 
-    // ISoftDeletable
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public bool      IsDeleted  { get; set; }
+    public DateTime? DeletedAt  { get; set; }
+    public string?   DeletedBy  { get; set; }
 }
 ```
 
@@ -42,53 +50,100 @@ public class Order : ISoftDeletable
 Use normal EF Core delete operations — the interceptor handles the rest:
 
 ```csharp
-// These both trigger soft delete automatically
 context.Orders.Remove(order);
 await context.SaveChangesAsync();
-
-// Or via state change
-context.Entry(order).State = EntityState.Deleted;
-await context.SaveChangesAsync();
+// order.IsDeleted == true
+// order.DeletedAt == DateTime.UtcNow
+// order.DeletedBy == "user-123"  (from IUserProvider)
 ```
 
-After saving, the record still exists in the database with `IsDeleted = true`.
+The row stays in the database — it is just invisible to normal queries.
+
+---
 
 ## Querying
 
-Soft-deleted records are automatically excluded from all queries:
+### Default — Active Records Only
 
 ```csharp
-// Only returns non-deleted orders
-var orders = await context.Orders.ToListAsync();
+var orders = await context.Orders.ToListAsync(); // soft-deleted rows excluded
 ```
 
-### Include Deleted Records
+### `GetDeletedAsync` — DbSet Method
 
-Use `IgnoreQueryFilters()` to bypass the filter:
+Returns all soft-deleted rows directly from a `DbSet<T>`:
 
 ```csharp
-// All orders, including soft-deleted ones
-var allOrders = await context.Orders
-    .IgnoreQueryFilters()
-    .ToListAsync();
+IReadOnlyList<Order> trash = await context.Orders.GetDeletedAsync();
+```
 
-// Only deleted orders
-var deletedOrders = await context.Orders
-    .IgnoreQueryFilters()
-    .Where(o => o.IsDeleted)
+> Requires `T : ISoftDeletable`. Bypasses the global filter and adds `WHERE IsDeleted = true`.
+
+### `IncludeDeleted` — IQueryable Method
+
+Returns active and soft-deleted rows together (bypasses global filter):
+
+```csharp
+var all = await context.Orders.IncludeDeleted().ToListAsync();
+
+// Chain other LINQ operators freely
+var allForCustomer = await context.Orders
+    .IncludeDeleted()
+    .Where(o => o.CustomerId == id)
+    .OrderBy(o => o.CreatedAt)
     .ToListAsync();
 ```
+
+### `OnlyDeleted` — IQueryable Method
+
+Returns only soft-deleted rows (bypasses global filter and adds `WHERE IsDeleted = true`):
+
+```csharp
+var deletedOrders = await context.Orders.OnlyDeleted().ToListAsync();
+```
+
+---
+
+## Restoring Records
+
+Load the deleted record (bypassing the filter), then restore it:
+
+```csharp
+var order = await context.Orders
+    .OnlyDeleted()
+    .FirstAsync(o => o.Id == orderId);
+
+context.Orders.Restore(order);
+await context.SaveChangesAsync();
+// order.IsDeleted == false, order.DeletedAt == null, order.DeletedBy == null
+```
+
+`Restore` clears `IsDeleted`, `DeletedAt`, and `DeletedBy` on the entity. Call `SaveChangesAsync` to persist.
+
+---
+
+## Hard Deleting Records
+
+Use `HardDelete` to permanently remove a record, bypassing the soft-delete interceptor:
+
+```csharp
+context.Orders.HardDelete(order);
+await context.SaveChangesAsync(); // row physically removed
+```
+
+Useful for GDPR erasure or clearing obsolete data when you want the row gone completely.
+
+---
 
 ## Cascade Soft Delete
 
-When `cascade: true` is enabled, loaded child navigation properties that implement `ISoftDeletable` are also soft-deleted:
+When `cascade: true` is set, loaded child navigation properties that also implement `ISoftDeletable` are soft-deleted in the same `SaveChanges` call:
 
 ```csharp
 kit.EnableSoftDelete(cascade: true);
 ```
 
 ```csharp
-// Deleting an order also soft-deletes its loaded OrderItems
 var order = await context.Orders
     .Include(o => o.Items)
     .FirstAsync(o => o.Id == orderId);
@@ -96,23 +151,17 @@ var order = await context.Orders
 context.Orders.Remove(order);
 await context.SaveChangesAsync();
 // order.IsDeleted == true
-// order.Items.All(i => i.IsDeleted) == true
+// order.Items[*].IsDeleted == true
 ```
 
-> **Important:** Cascade soft delete only affects navigation properties that are **loaded** (included) in the change tracker. Unloaded relations are not affected.
+> **Important:** cascade soft delete only affects navigation properties that are **loaded** (included) in the change tracker. Unloaded relations are not affected.
 
-## Restoring Deleted Records
+---
 
-To restore a soft-deleted entity, query it with `IgnoreQueryFilters()` and set `IsDeleted = false`:
+## Combining with Audit Trail
 
-```csharp
-var order = await context.Orders
-    .IgnoreQueryFilters()
-    .FirstAsync(o => o.Id == orderId);
+When an entity implements both `IAuditable` and `ISoftDeletable` (as `SoftDeletableEntity` does), a soft delete triggers a `Modified` state change — so `UpdatedAt` and `UpdatedBy` are also stamped at the moment of deletion.
 
-order.IsDeleted = false;
-order.DeletedAt = null;
-order.DeletedBy = null;
-await context.SaveChangesAsync();
-```
+## Combining with Multi-Tenancy
 
+Soft-deleted rows from other tenants remain invisible. The tenant filter and soft-delete filter are both applied independently.
