@@ -1,11 +1,11 @@
 // Re-export all public namespaces so consumers only need "using EfCoreKit;"
-global using EfCoreKit.Abstractions.Entities;
-global using EfCoreKit.Abstractions.Exceptions;
-global using EfCoreKit.Abstractions.Interfaces;
-global using EfCoreKit.Abstractions.Models;
-global using EfCoreKit.Core.Configuration;
-global using EfCoreKit.Core.Context;
-global using EfCoreKit.Core.Extensions;
-global using EfCoreKit.Core.Repositories;
-global using EfCoreKit.Core.Specifications;
-global using EfCoreKit.Core.UnitOfWork;
+global using EfCoreKit.Entities;
+global using EfCoreKit.Exceptions;
+global using EfCoreKit.Interfaces;
+global using EfCoreKit.Models;
+global using EfCoreKit.Configuration;
+global using EfCoreKit.Context;
+global using EfCoreKit.Extensions;
+global using EfCoreKit.Repositories;
+global using EfCoreKit.Specifications;
+global using EfCoreKit.UnitOfWork;
