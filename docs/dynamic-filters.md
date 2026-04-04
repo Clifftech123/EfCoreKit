@@ -7,9 +7,9 @@
 ```csharp
 var filters = new[]
 {
-    new FilterDescriptor("Status",    "eq",      "Active"),
-    new FilterDescriptor("CreatedAt", "gte",     DateTime.UtcNow.AddDays(-30)),
-    new FilterDescriptor("Name",      "contains","Pro"),
+    new FilterDescriptor { Field = "Status",    Operator = "eq",      Value = "Active" },
+    new FilterDescriptor { Field = "CreatedAt", Operator = "gte",     Value = DateTime.UtcNow.AddDays(-30) },
+    new FilterDescriptor { Field = "Name",      Operator = "contains", Value = "Pro" },
 };
 
 var results = await context.Products
@@ -17,7 +17,22 @@ var results = await context.Products
     .ToListAsync();
 ```
 
-Each `FilterDescriptor` targets a property by name (supports nested paths like `"Address.City"`) and applies the specified operator against a value.
+`FilterDescriptor` uses `required init` properties — use object initializer syntax, not positional arguments.
+
+Each descriptor targets a property by name (supports dot-separated nested paths like `"Address.City"`) and applies the specified operator against the value.
+
+---
+
+## FilterDescriptor
+
+```csharp
+public sealed class FilterDescriptor
+{
+    public required string Field    { get; init; }  // property name or path (e.g. "Address.City")
+    public required string Operator { get; init; }  // operator string (case-insensitive)
+    public object?         Value    { get; init; }  // the value to compare against
+}
+```
 
 ---
 
@@ -39,18 +54,7 @@ Each `FilterDescriptor` targets a property by name (supports nested paths like `
 | `in` | Value is in a list | `IEnumerable` |
 | `between` | Value is within a range | `object[2]` — `[min, max]` |
 
----
-
-## FilterDescriptor
-
-```csharp
-public class FilterDescriptor
-{
-    public string Field    { get; set; }  // property name or path (e.g. "Address.City")
-    public string Operator { get; set; }  // one of the operators above
-    public object? Value   { get; set; } // the value to compare against
-}
-```
+Operator strings are **case-insensitive** (`"EQ"`, `"Eq"`, `"eq"` all work).
 
 ---
 
@@ -59,56 +63,95 @@ public class FilterDescriptor
 ### Equality / Comparison
 
 ```csharp
-new FilterDescriptor("Status",  "eq",  "Active")
-new FilterDescriptor("Status",  "ne",  "Cancelled")
-new FilterDescriptor("Price",   "gt",  100m)
-new FilterDescriptor("Price",   "gte", 50m)
-new FilterDescriptor("Score",   "lt",  10)
-new FilterDescriptor("Score",   "lte", 9)
+new FilterDescriptor { Field = "Status",  Operator = "eq",  Value = "Active" }
+new FilterDescriptor { Field = "Status",  Operator = "ne",  Value = "Cancelled" }
+new FilterDescriptor { Field = "Price",   Operator = "gt",  Value = 100m }
+new FilterDescriptor { Field = "Price",   Operator = "gte", Value = 50m }
+new FilterDescriptor { Field = "Score",   Operator = "lt",  Value = 10 }
+new FilterDescriptor { Field = "Score",   Operator = "lte", Value = 9 }
 ```
 
 ### String Operators
 
 ```csharp
-new FilterDescriptor("Name",  "contains",   "widget")
-new FilterDescriptor("Email", "startswith", "admin")
-new FilterDescriptor("Code",  "endswith",   "-X")
+new FilterDescriptor { Field = "Name",  Operator = "contains",   Value = "widget" }
+new FilterDescriptor { Field = "Email", Operator = "startswith", Value = "admin" }
+new FilterDescriptor { Field = "Code",  Operator = "endswith",   Value = "-X" }
 ```
 
 ### Null Checks
 
 ```csharp
-new FilterDescriptor("DeletedAt", "isnull",    null)
-new FilterDescriptor("UpdatedAt", "isnotnull", null)
+new FilterDescriptor { Field = "DeletedAt", Operator = "isnull",    Value = null }
+new FilterDescriptor { Field = "UpdatedAt", Operator = "isnotnull", Value = null }
 ```
 
 ### In — Match Any Value in a List
 
 ```csharp
-new FilterDescriptor("Status", "in", new[] { "Active", "Pending" })
-new FilterDescriptor("Id",     "in", new[] { 1, 2, 3, 4 })
+new FilterDescriptor { Field = "Status", Operator = "in", Value = new[] { "Active", "Pending" } }
+new FilterDescriptor { Field = "Id",     Operator = "in", Value = new[] { 1, 2, 3, 4 } }
 ```
 
-The value can be any `IEnumerable`; EfCore.Extensions builds a `List.Contains` expression that translates to SQL `IN (...)`.
+The value can be any `IEnumerable`. EfCore.Extensions builds a `List.Contains` expression that translates to SQL `IN (...)`.
 
-### Between — Range Filter
+### Between — Inclusive Range Filter
 
 ```csharp
-new FilterDescriptor("Price",     "between", new object[] { 10.0m, 99.99m })
-new FilterDescriptor("CreatedAt", "between", new object[] { startDate, endDate })
+new FilterDescriptor { Field = "Price",     Operator = "between", Value = new object[] { 10.0m, 99.99m } }
+new FilterDescriptor { Field = "CreatedAt", Operator = "between", Value = new object[] { startDate, endDate } }
 ```
 
-Produces `property >= min && property <= max`.
+Produces `property >= min && property <= max` (both bounds inclusive).
+
+---
+
+## SortDescriptor
+
+Use `ApplySorts` to apply runtime sorting alongside filters:
+
+```csharp
+public sealed class SortDescriptor
+{
+    public required string Field     { get; init; }       // property name or nested path
+    public          bool   Ascending { get; init; } = true; // default ascending
+}
+```
+
+```csharp
+var sorts = new[]
+{
+    new SortDescriptor { Field = "Category", Ascending = true },
+    new SortDescriptor { Field = "Price",    Ascending = false },
+};
+
+var sorted = context.Products.ApplySorts(sorts);
+```
+
+The first descriptor maps to `OrderBy`, subsequent descriptors to `ThenBy`.
+
+---
+
+## Error Handling
+
+`ApplyFilters` throws `InvalidFilterException` (inherits `EfCoreException`) in these cases:
+
+| Situation | Exception message |
+|-----------|------------------|
+| `Field` is null or whitespace | `"Filter field name cannot be null or empty."` |
+| Unsupported operator string | `"Unsupported filter operator: 'xyz'."` |
+| `in` value is not `IEnumerable` | `"'in' operator requires an IEnumerable value."` |
+| `between` value is not `object[2]` | `"'between' operator requires a 2-element object[] value: [min, max]."` |
 
 ---
 
 ## Combining with Other Helpers
 
-`ApplyFilters` returns `IQueryable<T>`, so you can chain it with ordering, pagination, and specifications:
+`ApplyFilters` and `ApplySorts` return `IQueryable<T>`, so you can chain them freely:
 
 ```csharp
-var filters = new[] { new FilterDescriptor("IsActive", "eq", true) };
-var sorts   = new[] { new SortDescriptor("CreatedAt", ascending: false) };
+var filters = new[] { new FilterDescriptor { Field = "IsActive", Operator = "eq", Value = true } };
+var sorts   = new[] { new SortDescriptor   { Field = "CreatedAt", Ascending = false } };
 
 var page = await context.Customers
     .ApplyFilters(filters)

@@ -38,12 +38,13 @@ public class AppDbContext : EfCoreDbContext<AppDbContext>
 ## 2. Register in DI
 
 ```csharp
+// Pick only the features you need — enable each option once
 builder.Services.AddEfCoreExtensions<AppDbContext>(
     options => options.UseSqlServer(connectionString),
     kit => kit
         .EnableSoftDelete()
-        .EnableAuditTrail()                // basic timestamps
-        .EnableAuditTrail(fullLog: true)   // + field-level AuditLog records
+        .EnableAuditTrail()               // basic: stamps CreatedAt/By, UpdatedAt/By
+        // .EnableAuditTrail(fullLog: true) // alternative: also writes field-level AuditLog rows
         .EnableMultiTenancy()
         .UseUserProvider<HttpContextUserProvider>()
         .UseTenantProvider<HttpContextTenantProvider>()
@@ -174,3 +175,4 @@ Once configured, EfCore.Extensions handles the following via EF Core interceptor
 - [Dynamic Filters](dynamic-filters.md) — Runtime filter arrays
 - [Query Helpers](query-helpers.md) — WhereIf, OrderByDynamic, DbSet extensions
 - [DbContext Utilities](dbcontext-utilities.md) — Transactions, DetachAll, TruncateAsync
+- [Exceptions](exceptions.md) — All exception types, when they're thrown, what to catch

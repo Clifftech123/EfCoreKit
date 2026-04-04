@@ -15,7 +15,8 @@ Both sync (`SaveChanges`) and async (`SaveChangesAsync`) paths are handled.
 builder.Services.AddEfCoreExtensions<AppDbContext>(
     options => options.UseSqlServer(connectionString),
     kit => kit
-        .EnableSoftDelete()
+        .EnableSoftDelete()                  // soft delete only
+        .EnableSoftDelete(cascade: true)     // also soft-deletes loaded child entities
         .UseUserProvider<HttpContextUserProvider>());
 ```
 
@@ -38,9 +39,9 @@ public class Order : ISoftDeletable
     public int Id { get; set; }
     public string Description { get; set; } = string.Empty;
 
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public string? DeletedBy { get; set; }
+    public bool      IsDeleted  { get; set; }
+    public DateTime? DeletedAt  { get; set; }
+    public string?   DeletedBy  { get; set; }
 }
 ```
 
@@ -51,10 +52,14 @@ Use normal EF Core delete operations — the interceptor handles the rest:
 ```csharp
 context.Orders.Remove(order);
 await context.SaveChangesAsync();
-// order.IsDeleted == true, order.DeletedAt == UtcNow, order.DeletedBy == "user-123"
+// order.IsDeleted == true
+// order.DeletedAt == DateTime.UtcNow
+// order.DeletedBy == "user-123"  (from IUserProvider)
 ```
 
-The row stays in the database — it's just invisible to normal queries.
+The row stays in the database — it is just invisible to normal queries.
+
+---
 
 ## Querying
 
@@ -64,30 +69,44 @@ The row stays in the database — it's just invisible to normal queries.
 var orders = await context.Orders.ToListAsync(); // soft-deleted rows excluded
 ```
 
-### Include Deleted Alongside Active
+### `GetDeletedAsync` — DbSet Method
+
+Returns all soft-deleted rows directly from a `DbSet<T>`:
+
+```csharp
+IReadOnlyList<Order> trash = await context.Orders.GetDeletedAsync();
+```
+
+> Requires `T : ISoftDeletable`. Bypasses the global filter and adds `WHERE IsDeleted = true`.
+
+### `IncludeDeleted` — IQueryable Method
+
+Returns active and soft-deleted rows together (bypasses global filter):
 
 ```csharp
 var all = await context.Orders.IncludeDeleted().ToListAsync();
+
+// Chain other LINQ operators freely
+var allForCustomer = await context.Orders
+    .IncludeDeleted()
+    .Where(o => o.CustomerId == id)
+    .OrderBy(o => o.CreatedAt)
+    .ToListAsync();
 ```
 
-### Only Deleted Records
+### `OnlyDeleted` — IQueryable Method
+
+Returns only soft-deleted rows (bypasses global filter and adds `WHERE IsDeleted = true`):
 
 ```csharp
-var trash = await context.Orders.OnlyDeleted().ToListAsync();
+var deletedOrders = await context.Orders.OnlyDeleted().ToListAsync();
 ```
 
-Both `IncludeDeleted()` and `OnlyDeleted()` are extension methods that apply `IgnoreQueryFilters()` and add the appropriate `Where` clause. They require `T : class, ISoftDeletable`.
+---
 
-## Restoring Deleted Records
+## Restoring Records
 
-```csharp
-// Restore a soft-deleted record back to active
-context.Orders.Restore(order);
-await context.SaveChangesAsync();
-// order.IsDeleted == false, order.DeletedAt == null, order.DeletedBy == null
-```
-
-To restore a record you need to load it first (bypassing the global filter):
+Load the deleted record (bypassing the filter), then restore it:
 
 ```csharp
 var order = await context.Orders
@@ -96,22 +115,29 @@ var order = await context.Orders
 
 context.Orders.Restore(order);
 await context.SaveChangesAsync();
+// order.IsDeleted == false, order.DeletedAt == null, order.DeletedBy == null
 ```
+
+`Restore` clears `IsDeleted`, `DeletedAt`, and `DeletedBy` on the entity. Call `SaveChangesAsync` to persist.
+
+---
 
 ## Hard Deleting Records
 
-Use `HardDelete` to permanently remove a record regardless of soft-delete settings:
+Use `HardDelete` to permanently remove a record, bypassing the soft-delete interceptor:
 
 ```csharp
 context.Orders.HardDelete(order);
-await context.SaveChangesAsync(); // row is physically removed from the database
+await context.SaveChangesAsync(); // row physically removed
 ```
 
-This bypasses the soft-delete interceptor and calls `DbSet.Remove` directly.
+Useful for GDPR erasure or clearing obsolete data when you want the row gone completely.
+
+---
 
 ## Cascade Soft Delete
 
-When `cascade: true` is set, loaded child navigation properties that implement `ISoftDeletable` are also soft-deleted:
+When `cascade: true` is set, loaded child navigation properties that also implement `ISoftDeletable` are soft-deleted in the same `SaveChanges` call:
 
 ```csharp
 kit.EnableSoftDelete(cascade: true);
@@ -128,12 +154,14 @@ await context.SaveChangesAsync();
 // order.Items[*].IsDeleted == true
 ```
 
-> **Important:** Cascade soft delete only affects navigation properties that are **loaded** (included) in the change tracker.
+> **Important:** cascade soft delete only affects navigation properties that are **loaded** (included) in the change tracker. Unloaded relations are not affected.
+
+---
 
 ## Combining with Audit Trail
 
-When an entity implements both `IAuditable` and `ISoftDeletable` (e.g. `SoftDeletableEntity`), a soft delete triggers a `Modified` state change — so `UpdatedAt` and `UpdatedBy` are also stamped at the moment of deletion.
+When an entity implements both `IAuditable` and `ISoftDeletable` (as `SoftDeletableEntity` does), a soft delete triggers a `Modified` state change — so `UpdatedAt` and `UpdatedBy` are also stamped at the moment of deletion.
 
 ## Combining with Multi-Tenancy
 
-Soft-deleted rows from other tenants remain invisible. The tenant filter and soft-delete filter are both applied independently, so you cannot accidentally see another tenant's deleted data.
+Soft-deleted rows from other tenants remain invisible. The tenant filter and soft-delete filter are both applied independently.

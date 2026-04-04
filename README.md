@@ -72,8 +72,8 @@ builder.Services.AddEfCoreExtensions<AppDbContext>(
     options => options.UseSqlServer(connectionString),
     kit => kit
         .EnableSoftDelete()
-        .EnableAuditTrail()               // basic timestamps
-        .EnableAuditTrail(fullLog: true)  // + field-level AuditLog records
+        .EnableAuditTrail()               // basic: stamps CreatedAt/By, UpdatedAt/By
+        // .EnableAuditTrail(fullLog: true) // alternative: also writes field-level AuditLog rows
         .EnableMultiTenancy()
         .UseUserProvider<HttpContextUserProvider>()
         .UseTenantProvider<HttpContextTenantProvider>()
@@ -213,10 +213,10 @@ var next = await context.Orders
 ```csharp
 var filters = new[]
 {
-    new FilterDescriptor("Status",    "eq",       "Active"),
-    new FilterDescriptor("CreatedAt", "gte",      DateTime.UtcNow.AddDays(-30)),
-    new FilterDescriptor("Tags",      "in",       new[] { "VIP", "Premium" }),
-    new FilterDescriptor("Score",     "between",  new object[] { 10, 100 }),
+    new FilterDescriptor { Field = "Status",    Operator = "eq",      Value = "Active" },
+    new FilterDescriptor { Field = "CreatedAt", Operator = "gte",     Value = DateTime.UtcNow.AddDays(-30) },
+    new FilterDescriptor { Field = "Tags",      Operator = "in",      Value = new[] { "VIP", "Premium" } },
+    new FilterDescriptor { Field = "Score",     Operator = "between", Value = new object[] { 10, 100 } },
 };
 
 var results = await context.Customers
@@ -263,6 +263,7 @@ await context.TruncateAsync<AuditLog>();
 | [Dynamic Filters](docs/dynamic-filters.md) | FilterDescriptor, all supported operators |
 | [Query Helpers](docs/query-helpers.md) | WhereIf, OrderByDynamic, DbSet extensions |
 | [DbContext Utilities](docs/dbcontext-utilities.md) | Transactions, DetachAll, TruncateAsync |
+| [Exceptions](docs/exceptions.md) | All exception types, when they're thrown, what to catch |
 
 ---
 

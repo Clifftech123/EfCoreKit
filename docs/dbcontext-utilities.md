@@ -49,14 +49,19 @@ context.DetachAll();
 
 ## TruncateAsync&lt;T&gt;
 
-Issues a `TRUNCATE TABLE` statement for the table mapped to entity type `T`. The table name is resolved using EF Core metadata — no hard-coded strings.
+Issues a `TRUNCATE TABLE` statement for the table mapped to entity type `T`. The table name is resolved from EF Core metadata — no hard-coded strings needed.
 
 ```csharp
 // Remove all rows from the AuditLog table (fast, no row-by-row DELETE)
 await context.TruncateAsync<AuditLog>();
 ```
 
-> **Warning:** `TRUNCATE TABLE` is not transactional on all databases and cannot be rolled back in some scenarios. Use with care and only when you are certain you want to remove all rows permanently.
+> **Warnings:**
+> - Bypasses EF Core interceptors, soft-delete filters, and global query filters — rows are removed unconditionally.
+> - Fails with a database error if other tables have foreign key references to this table.
+> - Not transactional on all databases — may not be rollback-able depending on your provider.
+>
+> Only use `TruncateAsync` when you are certain you want to remove all rows permanently and no FK constraints point to the table.
 
 ---
 

@@ -27,15 +27,16 @@ Read-only contract — no mutations, no `SaveChanges`.
 ```csharp
 public interface IReadRepository<T> where T : class
 {
-    Task<T?>                   GetByIdAsync(object id, CancellationToken ct = default);
-    Task<T>                    GetByIdOrThrowAsync(object id, CancellationToken ct = default);
-    Task<IReadOnlyList<T>>     GetAllAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<T>>     FindAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default);
-    Task<IReadOnlyList<T>>     FindAsync(ISpecification<T> spec, CancellationToken ct = default);
-    Task<T?>                   FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default);
-    Task<bool>                 ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default);
-    Task<int>                  CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken ct = default);
-    Task<PagedResult<T>>       GetPagedAsync(int page, int pageSize, CancellationToken ct = default);
+    Task<T?>               GetByIdAsync(object id, CancellationToken ct = default);
+    Task<T>                GetByIdOrThrowAsync(object id, CancellationToken ct = default);
+    Task<IReadOnlyList<T>> GetAllAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default);
+    Task<IReadOnlyList<T>> FindAsync(ISpecification<T> spec, CancellationToken ct = default);
+    Task<T?>               FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default);
+    Task<bool>             ExistsAsync(object id, CancellationToken ct = default);                          // by key
+    Task<bool>             ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default); // by predicate
+    Task<int>              CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken ct = default);
+    Task<PagedResult<T>>   GetPagedAsync(int page, int pageSize, CancellationToken ct = default);
 }
 ```
 
@@ -50,13 +51,13 @@ Full read/write contract — extends `IReadRepository<T>`.
 ```csharp
 public interface IRepository<T> : IReadRepository<T> where T : class
 {
-    Task   AddAsync(T entity, CancellationToken ct = default);
-    Task   AddRangeAsync(IEnumerable<T> entities, CancellationToken ct = default);
-    void   Update(T entity);
-    void   UpdateRange(IEnumerable<T> entities);
-    void   Remove(T entity);
-    Task   RemoveByIdAsync(object id, CancellationToken ct = default);
-    void   RemoveRangeAsync(IEnumerable<T> entities);
+    Task     AddAsync(T entity, CancellationToken ct = default);
+    Task     AddRangeAsync(IEnumerable<T> entities, CancellationToken ct = default);
+    void     Update(T entity);
+    void     UpdateRange(IEnumerable<T> entities);
+    void     Remove(T entity);
+    Task     RemoveByIdAsync(object id, CancellationToken ct = default);
+    Task     RemoveRangeAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default); // loads then deletes
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
 ```

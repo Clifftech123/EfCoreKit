@@ -1,6 +1,6 @@
 # Specification Pattern
 
-Specifications let you encapsulate query logic in strongly-typed, reusable classes — and compose them at runtime with `And` / `Or`.
+Specifications encapsulate query logic in strongly-typed, reusable classes — and compose them at runtime with `And` / `Or`.
 
 ## Creating a Specification
 
@@ -15,7 +15,7 @@ public class ActiveOrdersSpec : Specification<Order>
         AddCriteria(o => !o.IsDeleted);
         AddInclude(o => o.Items);
         ApplyOrderByDescending(o => o.CreatedAt);
-        ApplyThenBy(o => o.Id);
+        ApplyThenBy(o => o.Id);          // secondary sort — requires OrderBy/OrderByDescending first
         ApplyPaging(skip: 0, take: 20);
         ApplyAsNoTracking();
     }
@@ -24,18 +24,20 @@ public class ActiveOrdersSpec : Specification<Order>
 
 ## What You Can Configure
 
-| Method | Applied as |
-|--------|-----------|
-| `AddCriteria(expr)` | `.Where(expr)` (multiple criteria are AND-ed together) |
-| `AddInclude(expr)` | `.Include(expr)` |
-| `AddInclude(string)` | `.Include("Navigation.Path")` |
-| `ApplyOrderBy(expr)` | `.OrderBy(expr)` |
-| `ApplyOrderByDescending(expr)` | `.OrderByDescending(expr)` |
-| `ApplyThenBy(expr)` | `.ThenBy(expr)` |
-| `ApplyThenByDescending(expr)` | `.ThenByDescending(expr)` |
-| `ApplyPaging(skip, take)` | `.Skip(skip).Take(take)` |
-| `ApplyAsNoTracking()` | `.AsNoTracking()` |
-| `ApplyAsSplitQuery()` | `.AsSplitQuery()` |
+| Method | Applied as | Notes |
+|--------|-----------|-------|
+| `AddCriteria(expr)` | `.Where(expr)` | Multiple calls **replace** the previous criteria (last wins) |
+| `AddInclude(expr)` | `.Include(expr)` | Additive |
+| `AddInclude(string)` | `.Include("Navigation.Path")` | Additive |
+| `ApplyOrderBy(expr)` | `.OrderBy(expr)` | Mutually exclusive with `OrderByDescending` |
+| `ApplyOrderByDescending(expr)` | `.OrderByDescending(expr)` | Mutually exclusive with `OrderBy` |
+| `ApplyThenBy(expr)` | `.ThenBy(expr)` | Must call after `ApplyOrderBy` / `ApplyOrderByDescending` |
+| `ApplyThenByDescending(expr)` | `.ThenByDescending(expr)` | Must call after `ApplyOrderBy` / `ApplyOrderByDescending` |
+| `ApplyPaging(skip, take)` | `.Skip(skip).Take(take)` | |
+| `ApplyAsNoTracking()` | `.AsNoTracking()` | |
+| `ApplyAsSplitQuery()` | `.AsSplitQuery()` | |
+
+> **`AddCriteria` note:** calling `AddCriteria` twice replaces the first call — the last value wins. To combine multiple conditions, use a single expression: `AddCriteria(x => x.IsActive && x.Age > 18)`.
 
 ## Using a Specification
 
@@ -62,7 +64,7 @@ var orders = await query.ToListAsync();
 
 ## Composing Specifications with And / Or
 
-Combine two specifications at runtime using the `And` / `Or` extension methods. The resulting spec merges both criteria expressions into a single expression tree — no intermediate materialisation.
+Combine two specifications at runtime. The merged spec has the criteria from both, plus all includes from both.
 
 ```csharp
 var active  = new ActiveOrdersSpec(customerId);
@@ -77,7 +79,12 @@ var either = active.Or(highVal);
 var results = await context.Orders.FindAsync(combined);
 ```
 
-The `And` / `Or` methods return a new `Specification<T>` that copies all configuration (includes, ordering, paging, etc.) from the left-hand specification and applies the merged criteria.
+**What And/Or copies:**
+- Criteria — merged with `&&` (And) or `||` (Or) as an expression tree
+- All includes from both left and right specs are merged
+
+**What And/Or does NOT copy:**
+- Ordering, paging, `AsNoTracking`, `AsSplitQuery` — these are **not** inherited from either spec. Add them to the result if needed using `ApplySpecification` manually, or put them in one of the source specs and apply that spec directly after composing.
 
 ---
 
@@ -103,8 +110,38 @@ public class OrderSummarySpec : Specification<Order, OrderSummaryDto>
 ```
 
 ```csharp
+// Returns IReadOnlyList<OrderSummaryDto> — only the selector columns are fetched
 var summaries = await context.Orders.ToListAsync(new OrderSummarySpec(customerId));
-// Returns IReadOnlyList<OrderSummaryDto>
+```
+
+> **Important:** `ToListAsync(ISpecification<T, TResult>)` throws `InvalidOperationException` if the spec has no `Selector` defined.
+
+---
+
+## ISpecification Interface
+
+If you need to work with specs in a generic way, the full interface is:
+
+```csharp
+public interface ISpecification<T>
+{
+    Expression<Func<T, bool>>?                              Criteria          { get; }
+    List<Expression<Func<T, object>>>                       Includes          { get; }
+    List<string>                                            IncludeStrings    { get; }
+    Expression<Func<T, object>>?                            OrderBy           { get; }
+    Expression<Func<T, object>>?                            OrderByDescending { get; }
+    List<(Expression<Func<T, object>> KeySelector, bool Ascending)> ThenByExpressions { get; }
+    int?  Take        { get; }
+    int?  Skip        { get; }
+    bool  AsNoTracking { get; }
+    bool  AsSplitQuery { get; }
+}
+
+// Projecting variant
+public interface ISpecification<T, TResult> : ISpecification<T>
+{
+    Expression<Func<T, TResult>>? Selector { get; }
+}
 ```
 
 ---
@@ -118,21 +155,25 @@ var spec = new SpecificationBuilder<Product>()
     .AddCriteria(p => p.IsActive)
     .AddInclude(p => p.Category)
     .ApplyOrderBy(p => p.Name)
+    .ApplyThenByDescending(p => p.Price)
     .ApplyPaging(skip: 0, take: 25)
     .ApplyAsNoTracking();
 
 var products = await context.Products.FindAsync(spec);
 ```
 
-`SpecificationBuilder<T>` has a fluent API — every method returns `this` — so you can chain all configuration in one expression.
+Every `SpecificationBuilder<T>` method returns `this`, so all calls can be chained.
 
 ---
 
 ## Paginating with a Specification
 
 ```csharp
-var spec = new ActiveOrdersSpec(customerId); // no ApplyPaging set
-var page = await context.Orders.ToPagedFromSpecAsync(spec, page: 2, pageSize: 25);
+// Apply spec criteria/includes/ordering, then paginate on top
+var page = await context.Orders.ToPagedFromSpecAsync(
+    new ActiveOrdersSpec(customerId),  // note: do NOT call ApplyPaging on the spec when using this
+    page:     2,
+    pageSize: 25);
 ```
 
-`ToPagedFromSpecAsync` applies the spec criteria/includes/ordering and then runs the offset pagination on top.
+`ToPagedFromSpecAsync` ignores any `Skip`/`Take` set on the spec — pagination is controlled by the `page`/`pageSize` parameters.
