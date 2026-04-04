@@ -53,13 +53,7 @@ Every .NET project with EF Core ends up writing the same plumbing: soft delete f
 dotnet add package EfCoreKit
 ```
 
-Or install only what you need:
-
-| Package | Description |
-|---------|-------------|
-| `EfCoreKit` | Meta-package — installs everything |
-| `EfCoreKit.Core` | Core implementation (interceptors, repositories, extensions) |
-| `EfCoreKit.Abstractions` | Interfaces, base entities, and models only |
+One package — everything is included. No separate installs needed.
 
 ---
 
