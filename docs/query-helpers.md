@@ -1,6 +1,6 @@
 # Query Helpers
 
-EfCoreKit provides extension methods for `DbSet<T>` and `IQueryable<T>` that reduce boilerplate for common data access patterns. All native EF Core LINQ operators continue to work alongside these helpers.
+EfCore.Extensions provides extension methods for `DbSet<T>` and `IQueryable<T>` that reduce boilerplate for common data access patterns. All native EF Core LINQ operators continue to work alongside these helpers.
 
 ## DbSet Extensions
 
@@ -32,52 +32,58 @@ Order? latest = await context.Orders
 // All entities
 var allCustomers = await context.Customers.GetAllAsync();
 
+// Find by predicate
+var orders = await context.Orders.FindAsync(o => o.CustomerId == id);
+
+// Find by specification
+var orders = await context.Orders.FindAsync(new ActiveOrdersSpec(customerId));
+
 // Multiple entities by their IDs
 var customers = await context.Customers.GetByIdsAsync([1, 2, 3]);
-
-// Find by composite key
-var entity = await context.OrderItems.FindAsync(orderId, productId);
 ```
 
 ### Existence Checks
 
 ```csharp
-// By primary key
-bool exists = await context.Orders.ExistsAsync(orderId);
-
-// By predicate
 bool hasActive = await context.Customers.ExistsAsync(c => c.IsActive);
-
-// Any matching
-bool any = await context.Products.AnyAsync(p => p.Price > 100);
+bool any       = await context.Products.AnyAsync(p => p.Price > 100);
 ```
 
 ### Counting
 
 ```csharp
-int count = await context.Orders.CountAsync(o => o.Status == OrderStatus.Active);
+int  count    = await context.Orders.CountAsync(o => o.Status == OrderStatus.Active);
 long bigCount = await context.Events.LongCountAsync(e => e.Year == 2026);
 ```
 
 ### Aggregates
 
 ```csharp
-decimal maxPrice = await context.Products.MaxAsync(p => p.Price);
-decimal minPrice = await context.Products.MinAsync(p => p.Price);
-
-int totalQty = await context.OrderItems.SumAsync(i => i.Quantity);
-decimal totalRevenue = await context.Orders.SumAsync(o => o.Total);
-
-double avgPrice = await context.Products.AverageAsync(p => (double)p.Price);
+decimal max     = await context.Products.MaxAsync(p => p.Price);
+decimal min     = await context.Products.MinAsync(p => p.Price);
+int     total   = await context.OrderItems.SumAsync(i => i.Quantity);
+double  average = await context.Products.AverageAsync(p => (double)p.Price);
 ```
 
-### Write Operations
+### Soft Delete Lifecycle
+
+See [Soft Delete](soft-delete.md) for full details. Quick reference:
 
 ```csharp
-await context.Products.AddRangeAsync(newProducts);
-context.Products.UpdateRange(modifiedProducts);
-context.Products.RemoveRangeAsync(expiredProducts);
+// Return active + deleted rows together
+var all = await context.Customers.IncludeDeleted().ToListAsync();
+
+// Return only deleted rows
+var trash = await context.Customers.OnlyDeleted().ToListAsync();
+
+// Restore a deleted record
+context.Customers.Restore(customer);
+
+// Permanently remove a record
+context.Customers.HardDelete(customer);
 ```
+
+---
 
 ## IQueryable Extensions
 
@@ -87,9 +93,9 @@ Apply filters only when a condition is true — ideal for optional search parame
 
 ```csharp
 var results = await context.Products
-    .WhereIf(hasCategory, p => p.CategoryId == categoryId)
+    .WhereIf(hasCategory,     p => p.CategoryId == categoryId)
     .WhereIfNotNull(minPrice, p => p.Price >= minPrice)
-    .WhereIfNotEmpty(searchTerm, p => p.Name.Contains(searchTerm!))
+    .WhereIfNotEmpty(search,  p => p.Name.Contains(search!))
     .ToListAsync();
 ```
 
@@ -104,13 +110,10 @@ var results = await context.Products
 Sort by a property name received from an API request:
 
 ```csharp
-// Simple property
-var sorted = context.Products
-    .OrderByDynamic("Price", ascending: false);
+var sorted = context.Products.OrderByDynamic("Price", ascending: false);
 
 // Nested property path
-var sorted = context.Customers
-    .OrderByDynamic("Address.City");
+var sorted = context.Customers.OrderByDynamic("Address.City");
 
 // Multi-column sort
 var sorted = context.Products
@@ -118,38 +121,21 @@ var sorted = context.Products
     .ThenByDynamic("Price", ascending: false);
 ```
 
-### FilterDescriptor — API-Driven Filtering
+### Dynamic Filter Descriptors
 
-Apply filters from a list of descriptors (e.g. from a frontend grid component):
+See [Dynamic Filters](dynamic-filters.md) for full details. Quick reference:
 
 ```csharp
 var filters = new[]
 {
-    new FilterDescriptor { Field = "Status",  Operator = "eq",       Value = "Active" },
-    new FilterDescriptor { Field = "Price",   Operator = "gte",      Value = 9.99m },
-    new FilterDescriptor { Field = "Name",    Operator = "contains", Value = "Pro" }
+    new FilterDescriptor("Status",    "eq",      "Active"),
+    new FilterDescriptor("Price",     "gte",     9.99m),
+    new FilterDescriptor("Tags",      "in",      new[] { "VIP", "Premium" }),
+    new FilterDescriptor("Score",     "between", new object[] { 10, 100 }),
 };
 
-var results = await context.Products
-    .ApplyFilters(filters)
-    .ToListAsync();
+var results = await context.Products.ApplyFilters(filters).ToListAsync();
 ```
-
-Supported operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `contains`, `startswith`, `endswith`.
-
-### SortDescriptor — API-Driven Sorting
-
-```csharp
-var sorts = new[]
-{
-    new SortDescriptor { Field = "Category", Ascending = true },
-    new SortDescriptor { Field = "Price",    Ascending = false }
-};
-
-var sorted = context.Products.ApplySorts(sorts);
-```
-
-The first descriptor maps to `OrderBy`, subsequent ones to `ThenBy`.
 
 ### Projections
 
@@ -168,9 +154,8 @@ var email = await context.Customers
 var page = await context.Customers
     .SelectToPagedAsync(c => new CustomerDto { Name = c.Name }, page: 1, pageSize: 20);
 
-// Project distinct values
-List<string> cities = await context.Customers
-    .SelectDistinctAsync(c => c.Address.City);
+// Distinct values
+List<string> cities = await context.Customers.SelectDistinctAsync(c => c.Address.City);
 ```
 
 ### No-Tracking Queries
@@ -182,9 +167,11 @@ var reports = await context.Orders
     .ToListAsync();
 ```
 
+---
+
 ## Specification Pattern
 
-Encapsulate reusable query logic in a class:
+See [Specification Pattern](specifications.md) for full details. Quick reference:
 
 ```csharp
 public class ActiveHighValueCustomers : Specification<Customer>
@@ -194,21 +181,25 @@ public class ActiveHighValueCustomers : Specification<Customer>
         AddCriteria(c => c.IsActive && c.TotalSpend >= minSpend);
         AddInclude(c => c.Orders);
         ApplyOrderByDescending(c => c.TotalSpend);
+        ApplyThenBy(c => c.Name);
         ApplyPaging(skip: 0, take: 50);
         ApplyAsNoTracking();
     }
 }
 
-// Use it
+// Use it directly on a DbSet
 var spec = new ActiveHighValueCustomers(minSpend: 1000);
-var customers = await context.Customers
-    .ApplySpecification(spec)
-    .ToListAsync();
+var customers = await context.Customers.FindAsync(spec);
+
+// Or compose with And/Or
+var highValue = new ActiveHighValueCustomers(500);
+var vip       = new VipCustomerSpec();
+var combined  = highValue.And(vip);
 ```
 
 ### Inline Builder
 
-For one-off queries without creating a class:
+For one-off queries without creating a dedicated class:
 
 ```csharp
 var spec = new SpecificationBuilder<Product>()
@@ -222,19 +213,3 @@ var products = await context.Products
     .ApplySpecification(spec)
     .ToListAsync();
 ```
-
-### What ApplySpecification Does
-
-A specification can set criteria, includes, ordering, paging, no-tracking, and split-query — all applied in one call:
-
-| Property | Applied as |
-|----------|-----------|
-| `Criteria` | `.Where(criteria)` |
-| `Includes` | `.Include(expression)` |
-| `IncludeStrings` | `.Include("Navigation.Path")` |
-| `OrderBy` | `.OrderBy(expression)` |
-| `OrderByDescending` | `.OrderByDescending(expression)` |
-| `Skip` / `Take` | `.Skip(n).Take(n)` |
-| `AsNoTracking` | `.AsNoTracking()` |
-| `AsSplitQuery` | `.AsSplitQuery()` |
-

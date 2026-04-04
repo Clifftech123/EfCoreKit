@@ -4,7 +4,7 @@ namespace EfCore.Extensions.Core.Context;
 
 /// <summary>
 /// Configuration options for EfCore.Extensions features.
-/// Use the fluent methods to enable features before passing to <see cref="ServiceCollectionExtensions"/>.
+/// Use the fluent methods to enable features before passing to <c>AddEfCoreExtensions</c>.
 /// </summary>
 public sealed class EfCoreOptions
 {

@@ -2,133 +2,156 @@
 
 ## Installation
 
-Install the umbrella package (includes all database providers):
+Install the umbrella package (includes everything):
 
 ```bash
-dotnet add package EfCoreKit
+dotnet add package EfCore.Extensions
 ```
 
 Or install only what you need:
 
 ```bash
-dotnet add package EfCoreKit.Core          # Core features (no bulk ops)
-dotnet add package EfCoreKit.SqlServer     # + SQL Server bulk operations
-dotnet add package EfCoreKit.PostgreSql    # + PostgreSQL bulk operations
-dotnet add package EfCoreKit.MySql         # + MySQL bulk operations
-dotnet add package EfCoreKit.Sqlite        # + SQLite bulk operations
+dotnet add package EfCore.Extensions.Core          # Core features (interceptors, repositories, extensions)
+dotnet add package EfCore.Extensions.Abstractions  # Interfaces, base entities, and models only
 ```
 
 ## 1. Create Your DbContext
 
-Inherit from `EfCoreKitDbContext<T>` instead of `DbContext`:
+Inherit from `EfCoreDbContext<T>` instead of `DbContext`:
 
 ```csharp
-using EfCoreKit.Core.Context;
-using Microsoft.EntityFrameworkCore;
+using EfCore.Extensions.Core.Context;
 
-public class AppDbContext : EfCoreKitDbContext<AppDbContext>
+public class AppDbContext : EfCoreDbContext<AppDbContext>
 {
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>(); // required only when fullLog: true
 
-    public AppDbContext(
-        DbContextOptions<AppDbContext> options,
-        EfCoreKitOptions kitOptions,
-        IUserProvider? userProvider = null,
-        ITenantProvider? tenantProvider = null)
-        : base(options, kitOptions, userProvider, tenantProvider) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options, EfCoreOptions efOptions)
+        : base(options, efOptions) { }
 }
 ```
 
-> **Tip:** You don't _have_ to inherit from `EfCoreKitDbContext<T>`. The extension methods and interceptors work with any `DbContext`. The base class simply wires up interceptors and global filters automatically.
+> **Tip:** Inheriting from `EfCoreDbContext<T>` is optional — the interceptors and extensions work with any `DbContext`. The base class wires up interceptors and global query filters automatically.
 
 ## 2. Register in DI
 
 ```csharp
-builder.Services.AddEfCoreKit<AppDbContext>(
+builder.Services.AddEfCoreExtensions<AppDbContext>(
     options => options.UseSqlServer(connectionString),
     kit => kit
         .EnableSoftDelete()
-        .EnableAuditTrail()
+        .EnableAuditTrail()                // basic timestamps
+        .EnableAuditTrail(fullLog: true)   // + field-level AuditLog records
         .EnableMultiTenancy()
         .UseUserProvider<HttpContextUserProvider>()
         .UseTenantProvider<HttpContextTenantProvider>()
-        .LogSlowQueries(TimeSpan.FromSeconds(1))
-);
-
-// Register your database provider for bulk operations
-builder.Services.AddEfCoreKitSqlServer();
+        .LogSlowQueries(TimeSpan.FromSeconds(1)));
 ```
 
 Each `Enable*()` call is opt-in — only the features you enable are active.
 
-## 3. Implement Your Entities
+`AddEfCoreExtensions` also registers:
+- `IRepository<T>` and `IReadRepository<T>` → backed by `Repository<T>`
+- `IUnitOfWork` → backed by `UnitOfWork<TContext>`
 
-Apply the interfaces for the features you want:
+## 3. Define Your Entities
+
+The easiest path is to inherit a base class — they wire up the interface boilerplate for you:
+
+```csharp
+// Plain entity with int PK
+public class Product : BaseEntity { }
+
+// Audited (CreatedAt/By, UpdatedAt/By) with Guid PK
+public class Order : AuditableEntity<Guid> { }
+
+// Soft-deletable + audited, int PK
+public class Customer : SoftDeletableEntity { }
+
+// Full — soft-delete + audit + tenant + row version
+public class Invoice : FullEntity { }
+```
+
+You can also implement interfaces directly if you prefer to control your own hierarchy:
 
 ```csharp
 public class Customer : IAuditable, ISoftDeletable, ITenantEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
 
-    // IAuditable
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
 
-    // ISoftDeletable
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
 
-    // ITenantEntity
     public string? TenantId { get; set; }
 }
 ```
 
-You can implement any combination — an entity can be `IAuditable` only, or `ISoftDeletable` only, or all three, etc.
+## 4. Configure with Base Classes (optional)
 
-## 4. Implement IUserProvider
+Use the configuration base classes to auto-apply standard EF Core mappings:
 
-EfCoreKit needs to know _who_ the current user is for audit fields. Implement `IUserProvider`:
+```csharp
+public class CustomerConfiguration : SoftDeletableEntityConfiguration<Customer>
+{
+    protected override void ConfigureEntity(EntityTypeBuilder<Customer> builder)
+    {
+        builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
+        builder.HasIndex(c => c.Email).IsUnique();
+    }
+}
+```
+
+| Base class | Auto-configures |
+|-----------|----------------|
+| `BaseEntityConfiguration<T, TKey>` | Primary key (`HasKey(e => e.Id)`) |
+| `AuditableEntityConfiguration<T, TKey>` | Key + audit columns + index on `CreatedAt` |
+| `SoftDeletableEntityConfiguration<T, TKey>` | Audit + `IsDeleted` default + composite index on `(IsDeleted, CreatedAt)` |
+
+## 5. Implement IUserProvider
+
+EfCore.Extensions needs to know who the current user is for audit fields. Implement `IUserProvider`:
 
 ```csharp
 public class HttpContextUserProvider : IUserProvider
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHttpContextAccessor _accessor;
 
-    public HttpContextUserProvider(IHttpContextAccessor httpContextAccessor)
-        => _httpContextAccessor = httpContextAccessor;
+    public HttpContextUserProvider(IHttpContextAccessor accessor) => _accessor = accessor;
 
     public string? GetCurrentUserId()
-        => _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        => _accessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     public string? GetCurrentUserName()
-        => _httpContextAccessor.HttpContext?.User?.Identity?.Name;
+        => _accessor.HttpContext?.User?.Identity?.Name;
 }
 ```
 
-## 5. Implement ITenantProvider (if using multi-tenancy)
+## 6. Implement ITenantProvider (if using multi-tenancy)
 
 ```csharp
 public class HttpContextTenantProvider : ITenantProvider
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHttpContextAccessor _accessor;
 
-    public HttpContextTenantProvider(IHttpContextAccessor httpContextAccessor)
-        => _httpContextAccessor = httpContextAccessor;
+    public HttpContextTenantProvider(IHttpContextAccessor accessor) => _accessor = accessor;
 
     public string? GetCurrentTenantId()
-        => _httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
+        => _accessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
 }
 ```
 
 ## What Happens Automatically
 
-Once configured, EfCoreKit handles the following behind the scenes via EF Core interceptors:
+Once configured, EfCore.Extensions handles the following via EF Core interceptors:
 
 | Feature | What happens | When |
 |---------|-------------|------|
@@ -137,13 +160,17 @@ Once configured, EfCoreKit handles the following behind the scenes via EF Core i
 | **Multi-Tenancy** | Auto-assigns `TenantId` on insert, validates ownership on update | Every `SaveChanges` / `SaveChangesAsync` |
 | **Query Filters** | Hides soft-deleted rows and scopes queries to the current tenant | Every LINQ query |
 | **Slow Query Logging** | Logs a warning for queries exceeding the threshold | After each database command |
+| **Concurrency** | Throws `ConcurrencyConflictException` on stale row version conflicts | Every `SaveChanges` / `SaveChangesAsync` |
 
 ## Next Steps
 
-- [Soft Delete](soft-delete.md) — How soft delete works, cascade delete, querying deleted records
-- [Audit Trail](audit-trail.md) — Automatic timestamps and user tracking
+- [Base Entities](base-entities.md) — Entity class hierarchy and configuration bases
+- [Soft Delete](soft-delete.md) — Lifecycle methods, restoring records, cascade delete
+- [Audit Trail](audit-trail.md) — Timestamps, user tracking, field-level AuditLog
 - [Multi-Tenancy](multi-tenancy.md) — Tenant isolation and filtering
+- [Repository & Unit of Work](repository-uow.md) — Generic repository and transaction management
+- [Specification Pattern](specifications.md) — Composable, reusable query logic
 - [Pagination](pagination.md) — Offset and keyset/cursor pagination
-- [Query Helpers](query-helpers.md) — Conditional filtering, dynamic ordering, projections, specifications
-- [Bulk Operations](bulk-operations.md) — High-performance batch insert, update, delete, upsert
-
+- [Dynamic Filters](dynamic-filters.md) — Runtime filter arrays
+- [Query Helpers](query-helpers.md) — WhereIf, OrderByDynamic, DbSet extensions
+- [DbContext Utilities](dbcontext-utilities.md) — Transactions, DetachAll, TruncateAsync
