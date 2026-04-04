@@ -1,6 +1,6 @@
 # DbContext Utilities
 
-EfCore.Extensions adds utility extension methods to `DbContext` for transactions, tracking management, and table maintenance.
+EfCoreKit adds utility extension methods to `DbContext` for transactions, tracking management, and table maintenance.
 
 ## ExecuteInTransactionAsync
 

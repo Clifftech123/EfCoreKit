@@ -1,6 +1,6 @@
 # Repository & Unit of Work
 
-EfCore.Extensions provides a generic `IRepository<T>` and an `IUnitOfWork` that are registered automatically when you call `AddEfCoreExtensions`.
+EfCoreKit provides a generic `IRepository<T>` and an `IUnitOfWork` that are registered automatically when you call `AddEfCoreExtensions`.
 
 ## Registration
 

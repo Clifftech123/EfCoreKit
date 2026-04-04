@@ -1,6 +1,6 @@
 # Query Helpers
 
-EfCore.Extensions provides extension methods for `DbSet<T>` and `IQueryable<T>` that reduce boilerplate for common data access patterns. All native EF Core LINQ operators continue to work alongside these helpers.
+EfCoreKit provides extension methods for `DbSet<T>` and `IQueryable<T>` that reduce boilerplate for common data access patterns. All native EF Core LINQ operators continue to work alongside these helpers.
 
 ---
 

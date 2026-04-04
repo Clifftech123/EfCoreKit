@@ -1,11 +1,11 @@
 <div align="center">
 
-# EfCore.Extensions
+# EfCoreKit
 
 **EF Core extensions that eliminate boilerplate — so you can focus on building features.**
 
-[![NuGet](https://img.shields.io/nuget/v/EfCore.Extensions?logo=nuget&label=NuGet)](https://www.nuget.org/packages/EfCore.Extensions)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/EfCore.Extensions?logo=nuget&label=Downloads)](https://www.nuget.org/packages/EfCore.Extensions)
+[![NuGet](https://img.shields.io/nuget/v/EfCoreKit?logo=nuget&label=NuGet)](https://www.nuget.org/packages/EfCoreKit)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/EfCoreKit?logo=nuget&label=Downloads)](https://www.nuget.org/packages/EfCoreKit)
 [![Build](https://img.shields.io/github/actions/workflow/status/Clifftech123/EfCoreKit/ci.yml?branch=develop&logo=github&label=Build)](https://github.com/Clifftech123/EfCoreKit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -15,13 +15,13 @@
 
 ---
 
-## Why EfCore.Extensions?
+## Why EfCoreKit?
 
-Every .NET project with EF Core ends up writing the same plumbing: soft delete filters, audit timestamps, tenant isolation, pagination helpers, generic repositories, transaction wrappers. EfCore.Extensions packages all of that into a single `AddEfCoreExtensions()` call.
+Every .NET project with EF Core ends up writing the same plumbing: soft delete filters, audit timestamps, tenant isolation, pagination helpers, generic repositories, transaction wrappers. EfCoreKit packages all of that into a single `AddEfCoreExtensions()` call.
 
 **Design goals:**
 
-- **Zero lock-in** — Uses standard EF Core interceptors and global query filters. Your entities stay plain C# classes, your `DbContext` stays a normal `DbContext`, and you can remove EfCore.Extensions at any time without rewriting your data layer.
+- **Zero lock-in** — Uses standard EF Core interceptors and global query filters. Your entities stay plain C# classes, your `DbContext` stays a normal `DbContext`, and you can remove EfCoreKit at any time without rewriting your data layer.
 - **Opt-in everything** — Enable only the features you need. Nothing runs unless you turn it on.
 - **No custom ORM** — This is not a replacement for EF Core. It's a set of extensions that plug into the pipeline you already use.
 
@@ -50,16 +50,16 @@ Every .NET project with EF Core ends up writing the same plumbing: soft delete f
 ## Installation
 
 ```bash
-dotnet add package EfCore.Extensions
+dotnet add package EfCoreKit
 ```
 
 Or install only what you need:
 
 | Package | Description |
 |---------|-------------|
-| `EfCore.Extensions` | Meta-package — installs everything |
-| `EfCore.Extensions.Core` | Core implementation (interceptors, repositories, extensions) |
-| `EfCore.Extensions.Abstractions` | Interfaces, base entities, and models only |
+| `EfCoreKit` | Meta-package — installs everything |
+| `EfCoreKit.Core` | Core implementation (interceptors, repositories, extensions) |
+| `EfCoreKit.Abstractions` | Interfaces, base entities, and models only |
 
 ---
 
@@ -149,7 +149,7 @@ var orders = await dbSet.FindAsync(spec);
 
 ## What Happens Behind the Scenes
 
-| You do this | EfCore.Extensions does this |
+| You do this | EfCoreKit does this |
 |-------------|------------------------------|
 | Call `SaveChangesAsync()` | Stamps `CreatedAt`/`UpdatedAt`, sets `CreatedBy`/`UpdatedBy` from your user provider |
 | Delete an entity implementing `ISoftDeletable` | Converts to a soft delete — sets `IsDeleted`, `DeletedAt`, `DeletedBy` instead of removing the row |

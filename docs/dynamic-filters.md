@@ -93,7 +93,7 @@ new FilterDescriptor { Field = "Status", Operator = "in", Value = new[] { "Activ
 new FilterDescriptor { Field = "Id",     Operator = "in", Value = new[] { 1, 2, 3, 4 } }
 ```
 
-The value can be any `IEnumerable`. EfCore.Extensions builds a `List.Contains` expression that translates to SQL `IN (...)`.
+The value can be any `IEnumerable`. EfCoreKit builds a `List.Contains` expression that translates to SQL `IN (...)`.
 
 ### Between — Inclusive Range Filter
 

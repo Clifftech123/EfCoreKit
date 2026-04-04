@@ -2,17 +2,10 @@
 
 ## Installation
 
-Install the umbrella package (includes everything):
+One package — everything included:
 
 ```bash
-dotnet add package EfCore.Extensions
-```
-
-Or install only what you need:
-
-```bash
-dotnet add package EfCore.Extensions.Core          # Core features (interceptors, repositories, extensions)
-dotnet add package EfCore.Extensions.Abstractions  # Interfaces, base entities, and models only
+dotnet add package EfCoreKit
 ```
 
 ## 1. Create Your DbContext
@@ -20,7 +13,7 @@ dotnet add package EfCore.Extensions.Abstractions  # Interfaces, base entities, 
 Inherit from `EfCoreDbContext<T>` instead of `DbContext`:
 
 ```csharp
-using EfCore.Extensions.Core.Context;
+using EfCoreKit.Core.Context;
 
 public class AppDbContext : EfCoreDbContext<AppDbContext>
 {
@@ -119,7 +112,7 @@ public class CustomerConfiguration : SoftDeletableEntityConfiguration<Customer>
 
 ## 5. Implement IUserProvider
 
-EfCore.Extensions needs to know who the current user is for audit fields. Implement `IUserProvider`:
+EfCoreKit needs to know who the current user is for audit fields. Implement `IUserProvider`:
 
 ```csharp
 public class HttpContextUserProvider : IUserProvider
@@ -152,7 +145,7 @@ public class HttpContextTenantProvider : ITenantProvider
 
 ## What Happens Automatically
 
-Once configured, EfCore.Extensions handles the following via EF Core interceptors:
+Once configured, EfCoreKit handles the following via EF Core interceptors:
 
 | Feature | What happens | When |
 |---------|-------------|------|
