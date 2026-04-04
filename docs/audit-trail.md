@@ -1,6 +1,6 @@
 # Audit Trail
 
-EfCore.Extensions automatically timestamps entity creation and modification, and records which user made the change. You can optionally enable a full field-level change history log.
+EfCoreKit automatically timestamps entity creation and modification, and records which user made the change. You can optionally enable a full field-level change history log.
 
 ## How It Works
 
@@ -124,7 +124,7 @@ await context.SaveChangesAsync();
 
 ## IUserProvider
 
-EfCore.Extensions resolves the current user through `IUserProvider`. You provide the implementation:
+EfCoreKit resolves the current user through `IUserProvider`. You provide the implementation:
 
 ```csharp
 public interface IUserProvider

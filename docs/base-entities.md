@@ -1,6 +1,6 @@
 # Base Entities
 
-EfCore.Extensions provides a hierarchy of ready-made base classes so you don't have to repeat the same property declarations across every entity. Pick the one that matches the features you need.
+EfCoreKit provides a hierarchy of ready-made base classes so you don't have to repeat the same property declarations across every entity. Pick the one that matches the features you need.
 
 ## Entity Hierarchy
 

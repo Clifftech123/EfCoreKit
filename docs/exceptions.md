@@ -1,6 +1,6 @@
 # Exceptions
 
-All exceptions thrown by EfCore.Extensions inherit from `EfCoreException` — catch the base type to handle any library error in one place, or catch specific subtypes for finer-grained handling.
+All exceptions thrown by EfCoreKit inherit from `EfCoreException` — catch the base type to handle any library error in one place, or catch specific subtypes for finer-grained handling.
 
 ## Exception Hierarchy
 
@@ -18,7 +18,7 @@ Exception
 
 ## EfCoreException
 
-Abstract base class for all EfCore.Extensions exceptions.
+Abstract base class for all EfCoreKit exceptions.
 
 ```csharp
 try
@@ -27,7 +27,7 @@ try
 }
 catch (EfCoreException ex)
 {
-    // Catches any exception thrown by EfCore.Extensions
+    // Catches any exception thrown by EfCoreKit
     logger.LogError(ex, "Data access error");
 }
 ```

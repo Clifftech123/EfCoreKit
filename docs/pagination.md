@@ -1,6 +1,6 @@
 # Pagination
 
-EfCore.Extensions provides two pagination strategies: **offset-based** (traditional page numbers) and **keyset/cursor-based** (for high-volume data and infinite scroll).
+EfCoreKit provides two pagination strategies: **offset-based** (traditional page numbers) and **keyset/cursor-based** (for high-volume data and infinite scroll).
 
 ## Offset Pagination
 

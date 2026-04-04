@@ -1,6 +1,6 @@
 # Multi-Tenancy
 
-EfCore.Extensions provides automatic tenant isolation so each tenant only sees and modifies their own data.
+EfCoreKit provides automatic tenant isolation so each tenant only sees and modifies their own data.
 
 ## How It Works
 
@@ -41,7 +41,7 @@ public class Invoice : ITenantEntity
 
 ## ITenantProvider
 
-Implement `ITenantProvider` to tell EfCore.Extensions how to resolve the current tenant:
+Implement `ITenantProvider` to tell EfCoreKit how to resolve the current tenant:
 
 ```csharp
 public interface ITenantProvider
