@@ -1,0 +1,11 @@
+global using EfCoreKit.Entities;
+global using EfCoreKit.Interfaces;
+global using EfCoreKit.Models;
+global using EfCoreKit.Specifications;
+global using EfCoreKit.Extensions;
+global using EfCoreKit.Sample.WebApi.Domain.Entities;
+global using EfCoreKit.Sample.WebApi.Application.DTOs;
+global using EfCoreKit.Sample.WebApi.Application.Specifications;
+global using EfCoreKit.Sample.WebApi.Infrastructure.Data;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
