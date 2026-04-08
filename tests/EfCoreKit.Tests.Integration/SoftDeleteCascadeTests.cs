@@ -120,8 +120,8 @@ public class SoftDeleteCascadeTests
     [Fact]
     public async Task NonCascadeContext_DoesNotSoftDeleteChildren()
     {
-        // SoftDeleteDbContext does NOT have cascade enabled
-        await using var ctx = DbFactory.CreateWithCascadeSoftDelete();
+        // Soft-delete enabled but cascade is OFF
+        await using var ctx = DbFactory.CreateWithNonCascadeSoftDelete();
 
         var invoice = new Invoice
         {
@@ -130,9 +130,16 @@ public class SoftDeleteCascadeTests
         };
         ctx.Invoices.Add(invoice);
         await ctx.SaveChangesAsync();
+        var invoiceId = invoice.Id;
 
-        // Do NOT load children into the tracker — cascade can't touch what's not loaded
-        ctx.Invoices.Remove(invoice);
+        // Clear the tracker so children are NOT loaded — cascade can't touch what's not tracked.
+        // Without this, EF Core's own relationship cascade marks loaded children as Deleted
+        // before the SoftDeleteInterceptor runs.
+        ctx.ChangeTracker.Clear();
+
+        // Re-fetch only the parent (children not included)
+        var parent = await ctx.Invoices.IgnoreQueryFilters().FirstAsync(i => i.Id == invoiceId);
+        ctx.Invoices.Remove(parent);
         await ctx.SaveChangesAsync();
 
         var lines = await ctx.InvoiceLines.IgnoreQueryFilters().ToListAsync();

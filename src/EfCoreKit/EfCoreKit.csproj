@@ -2,20 +2,13 @@
 
   <PropertyGroup>
     <PackageId>EfCoreKit</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Clifftech123</Authors>
-    <Company>Clifftech123</Company>
+    <!-- Version is managed by MinVer via git tags (e.g. v1.0.0) -->
     <Description>
       EF Core extensions that eliminate boilerplate — soft delete, audit trail, multi-tenancy,
       repository pattern, unit of work, specification pattern, offset and keyset pagination,
       dynamic filters, DbContext utilities, and structured exceptions.
       Install one package and everything is included.
     </Description>
-    <PackageTags>efcore;entity-framework;soft-delete;audit;pagination;multi-tenancy;repository;specification;unit-of-work</PackageTags>
-    <PackageProjectUrl>https://github.com/Clifftech123/EfCoreKit</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Clifftech123/EfCoreKit</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
@@ -24,6 +17,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

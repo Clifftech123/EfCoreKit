@@ -11,7 +11,7 @@ namespace EfCoreKit.Sample.WebApi.Infrastructure.Data;
 /// Single DbContext that combines EfCoreKit features and ASP.NET Core Identity.
 ///
 /// Base class is <see cref="EfCoreDbContext{TContext}"/> (not IdentityDbContext) so that
-/// EfCoreKit's global query filters for soft-delete and multi-tenancy are wired up via
+/// EfCoreKit's global query filters for soft-delete are wired up via
 /// <c>base.OnModelCreating</c>. Identity entity configuration is applied through the
 /// standard <see cref="IEntityTypeConfiguration{T}"/> classes in the Configurations folder,
 /// which <c>ApplyConfigurationsFromAssembly</c> picks up automatically.
@@ -22,9 +22,8 @@ public class AppDbContext : EfCoreDbContext<AppDbContext>
         DbContextOptions<AppDbContext> options,
         EfCoreOptions kitOptions,
         IUserProvider? userProvider,
-        ITenantProvider? tenantProvider,
         ILoggerFactory? loggerFactory = null)
-        : base(options, kitOptions, userProvider, tenantProvider, loggerFactory)
+        : base(options, kitOptions, userProvider, loggerFactory)
     { }
 
     // ── Domain ─────────────────────────────────────────────────────────────────
@@ -47,7 +46,7 @@ public class AppDbContext : EfCoreDbContext<AppDbContext>
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Applies EfCoreKit's soft-delete and tenant global query filters
+        // Applies EfCoreKit's soft-delete global query filters
         base.OnModelCreating(modelBuilder);
 
         // Applies all IEntityTypeConfiguration<T> classes in this assembly

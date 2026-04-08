@@ -26,7 +26,4 @@ public sealed class CurrentUserService : ICurrentUserService
 
     public string? GetUserName()
         => _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name);
-
-    public string? GetTenantId()
-        => _httpContextAccessor.HttpContext?.User.FindFirst("tenant_id")?.Value;
 }

@@ -1,1 +1,122 @@
+name: Publish
 
+# Triggered only when a vX.Y.Z tag is pushed to master.
+# To release: merge develop → master, then: git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CONFIGURATION: Release
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  publish-nuget:
+    name: Publish to NuGet.org
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history required for MinVer versioning
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Pack NuGet package
+      run: >
+        dotnet pack src/EfCoreKit/EfCoreKit.csproj
+        --configuration ${{ env.CONFIGURATION }}
+        --no-build
+        --output ./artifacts
+
+    - name: Publish to NuGet.org
+      run: >
+        dotnet nuget push ./artifacts/*.nupkg
+        --source https://api.nuget.org/v3/index.json
+        --api-key ${{ secrets.NUGET_API_KEY }}
+        --skip-duplicate
+
+    - name: Publish symbols to NuGet.org
+      run: >
+        dotnet nuget push ./artifacts/*.snupkg
+        --source https://api.nuget.org/v3/index.json
+        --api-key ${{ secrets.NUGET_API_KEY }}
+        --skip-duplicate
+
+  create-release:
+    name: Create GitHub Release
+    needs: publish-nuget
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore and build
+      run: dotnet restore && dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Pack NuGet package
+      run: >
+        dotnet pack src/EfCoreKit/EfCoreKit.csproj
+        --configuration ${{ env.CONFIGURATION }}
+        --no-build
+        --output ./artifacts
+
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: EfCoreKit v${{ steps.version.outputs.VERSION }}
+        body: |
+          ## EfCoreKit v${{ steps.version.outputs.VERSION }}
+
+          EF Core extensions that eliminate boilerplate.
+
+          ### Installation
+
+          ```bash
+          dotnet add package EfCoreKit
+          ```
+
+          ### What's included
+
+          - Soft delete with global query filters
+          - Audit trail (CreatedAt, UpdatedAt, CreatedBy, UpdatedBy)
+          - Multi-tenancy support
+          - Repository + Unit of Work pattern
+          - Specification pattern
+          - Offset & keyset pagination
+          - Dynamic filters
+          - Structured exceptions
+        files: |
+          ./artifacts/*.nupkg
+          ./artifacts/*.snupkg
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

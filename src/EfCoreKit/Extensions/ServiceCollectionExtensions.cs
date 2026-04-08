@@ -28,9 +28,7 @@ public static class ServiceCollectionExtensions
     ///     kit => kit
     ///         .EnableSoftDelete()
     ///         .EnableAuditTrail()
-    ///         .EnableMultiTenancy()
     ///         .UseUserProvider&lt;HttpContextUserProvider&gt;()
-    ///         .UseTenantProvider&lt;HttpContextTenantProvider&gt;()
     ///         .LogSlowQueries(TimeSpan.FromSeconds(1)));
     /// </code>
     /// </example>
@@ -51,12 +49,6 @@ public static class ServiceCollectionExtensions
             services.AddScoped(typeof(IUserProvider), kitOptions.UserProviderType);
         }
 
-        // Register tenant provider if configured
-        if (kitOptions.TenantProviderType is not null)
-        {
-            services.AddScoped(typeof(ITenantProvider), kitOptions.TenantProviderType);
-        }
-
         // Register interceptors based on enabled features
         if (kitOptions.AuditTrailEnabled)
         {
@@ -66,11 +58,6 @@ public static class ServiceCollectionExtensions
         if (kitOptions.SoftDeleteEnabled)
         {
             services.AddScoped<SoftDeleteInterceptor>();
-        }
-
-        if (kitOptions.MultiTenancyEnabled)
-        {
-            services.AddScoped<TenantInterceptor>();
         }
 
         if (kitOptions.SlowQueryThreshold is not null)
@@ -96,11 +83,6 @@ public static class ServiceCollectionExtensions
             if (kitOptions.SoftDeleteEnabled)
             {
                 dbOptions.AddInterceptors(sp.GetRequiredService<SoftDeleteInterceptor>());
-            }
-
-            if (kitOptions.MultiTenancyEnabled)
-            {
-                dbOptions.AddInterceptors(sp.GetRequiredService<TenantInterceptor>());
             }
 
             if (kitOptions.SlowQueryThreshold is not null)

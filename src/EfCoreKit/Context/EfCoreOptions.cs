@@ -29,19 +29,9 @@ public sealed class EfCoreOptions
     public bool FullAuditLogEnabled { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether multi-tenancy is enabled for entities implementing <see cref="ITenantEntity"/>.
-    /// </summary>
-    public bool MultiTenancyEnabled { get; private set; }
-
-    /// <summary>
     /// Gets the type implementing <see cref="IUserProvider"/>.
     /// </summary>
     public Type? UserProviderType { get; private set; }
-
-    /// <summary>
-    /// Gets the type implementing <see cref="ITenantProvider"/>.
-    /// </summary>
-    public Type? TenantProviderType { get; private set; }
 
     /// <summary>
     /// Gets the threshold for logging slow queries. <c>null</c> disables slow query logging.
@@ -73,16 +63,6 @@ public sealed class EfCoreOptions
     }
 
     /// <summary>
-    /// Enables multi-tenancy for entities implementing <see cref="ITenantEntity"/>.
-    /// </summary>
-    /// <returns>This instance for chaining.</returns>
-    public EfCoreOptions EnableMultiTenancy()
-    {
-        MultiTenancyEnabled = true;
-        return this;
-    }
-
-    /// <summary>
     /// Registers the <see cref="IUserProvider"/> implementation to use for audit trail.
     /// </summary>
     /// <typeparam name="T">The concrete type implementing <see cref="IUserProvider"/>.</typeparam>
@@ -90,17 +70,6 @@ public sealed class EfCoreOptions
     public EfCoreOptions UseUserProvider<T>() where T : class, IUserProvider
     {
         UserProviderType = typeof(T);
-        return this;
-    }
-
-    /// <summary>
-    /// Registers the <see cref="ITenantProvider"/> implementation to use for multi-tenancy.
-    /// </summary>
-    /// <typeparam name="T">The concrete type implementing <see cref="ITenantProvider"/>.</typeparam>
-    /// <returns>This instance for chaining.</returns>
-    public EfCoreOptions UseTenantProvider<T>() where T : class, ITenantProvider
-    {
-        TenantProviderType = typeof(T);
         return this;
     }
 

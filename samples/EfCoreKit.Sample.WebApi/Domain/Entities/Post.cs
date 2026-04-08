@@ -1,7 +1,7 @@
 namespace EfCoreKit.Sample.WebApi.Domain.Entities;
 
 /// <summary>
-/// Demonstrates <see cref="FullEntity"/>: audit + soft-delete + multi-tenancy + concurrency.
+/// Demonstrates <see cref="FullEntity"/>: audit + soft-delete + concurrency.
 /// Belongs to a <see cref="User"/> (author) and a <see cref="Category"/>.
 /// </summary>
 public class Post : FullEntity

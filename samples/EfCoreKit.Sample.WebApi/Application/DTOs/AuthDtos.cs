@@ -6,13 +6,7 @@ public sealed record RegisterRequest(
     string FirstName,
     string LastName,
     string Email,
-    string Password,
-    /// <summary>
-    /// The tenant this user belongs to.
-    /// All Posts created by this user will be scoped to this tenant via EfCoreKit's
-    /// TenantInterceptor — no manual filtering required.
-    /// </summary>
-    string TenantId);
+    string Password);
 
 public sealed record LoginRequest(string Email, string Password);
 
@@ -38,5 +32,4 @@ public sealed record CurrentUserResponse(
     Guid Id,
     string FullName,
     string Email,
-    string TenantId,
     DateTime? LastLoginAt);

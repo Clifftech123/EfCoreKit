@@ -30,8 +30,6 @@ public sealed record PostResponse(
     string? CreatedBy,
     DateTime? UpdatedAt,
     string? UpdatedBy,
-    // Multi-tenancy — shows which tenant owns this post
-    string? TenantId,
     // Concurrency token — include in PUT requests
     byte[] RowVersion);
 
@@ -41,5 +39,4 @@ public sealed record PostSummaryResponse(
     string Slug,
     bool IsPublished,
     string? CategoryName,
-    DateTime CreatedAt,
-    string? TenantId);
+    DateTime CreatedAt);

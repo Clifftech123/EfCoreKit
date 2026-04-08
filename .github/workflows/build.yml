@@ -1,1 +1,98 @@
+name: CI Pipeline
 
+on:
+  push:
+    branches: [ develop, master ]
+  pull_request:
+    branches: [ develop, master ]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CONFIGURATION: Release
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  MINVERBUILDMETADATA: build.${{ github.run_number }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history required for MinVer versioning
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Pack NuGet package
+      if: github.event_name == 'push'
+      run: >
+        dotnet pack src/EfCoreKit/EfCoreKit.csproj
+        --configuration ${{ env.CONFIGURATION }}
+        --no-build
+        --output ./artifacts
+
+    - name: Upload build artifacts
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: |
+          ./artifacts/*.nupkg
+          ./artifacts/*.snupkg
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Run integration tests
+      run: >
+        dotnet test tests/EfCoreKit.Tests.Integration/EfCoreKit.Tests.Integration.csproj
+        --configuration ${{ env.CONFIGURATION }}
+        --no-build
+        --verbosity normal
+        --logger "trx;LogFileName=integration-test-results.trx"
+        --collect:"XPlat Code Coverage"
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: '**/TestResults/*.trx'
+
+    - name: Upload code coverage
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage
+        path: '**/TestResults/**/coverage.cobertura.xml'
