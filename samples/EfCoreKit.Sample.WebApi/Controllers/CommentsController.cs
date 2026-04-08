@@ -1,6 +1,4 @@
-using System.Security.Claims;
 using EfCoreKit.Sample.WebApi.Application.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 
 namespace EfCoreKit.Sample.WebApi.Controllers;
 
@@ -10,8 +8,7 @@ namespace EfCoreKit.Sample.WebApi.Controllers;
 /// exists and create the Comment atomically in one CommitAsync call.
 /// Comments use AuditableEntity — audit fields only, no soft-delete.
 /// The authenticated user (from JWT) is set as the comment author.
-/// </summary>
-[Authorize]
+
 [ApiController]
 [Route("api/posts/{postId:int}/comments")]
 public class CommentsController : ControllerBase

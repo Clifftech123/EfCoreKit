@@ -17,14 +17,16 @@ public static class DatabaseSeeder
         if (await db.Users.AnyAsync()) return;
 
         await SeedUsersAsync(userManager);
-        SeedCategories(db);
-        SeedTags(db);
+
+        var categories = SeedCategories(db);
+        var tags = SeedTags(db);
         await db.SaveChangesAsync();
 
-        SeedPosts(db);
+        // After SaveChanges, category/tag IDs are populated by SQL Server.
+        var posts = SeedPosts(db, categories, tags);
         await db.SaveChangesAsync();
 
-        SeedComments(db);
+        SeedComments(db, posts);
         await db.SaveChangesAsync();
     }
 
@@ -60,137 +62,137 @@ public static class DatabaseSeeder
         await userManager.CreateAsync(bob, "Password123!");
     }
 
-    // ── Categories ─────────────────────────────────────────────────────────────
 
-    private static void SeedCategories(AppDbContext db)
+
+    private static Category[] SeedCategories(AppDbContext db)
     {
-        db.Categories.AddRange(
-            new Category { Id = 1, Name = "Technology", Description = "Software, hardware, and everything in between." },
-            new Category { Id = 2, Name = "Lifestyle", Description = "Tips and stories for everyday living." },
-            new Category { Id = 3, Name = "Science", Description = "Discoveries, research, and the natural world." },
-            new Category { Id = 4, Name = "Travel", Description = "Destinations, guides, and travel experiences." }
-        );
+        var categories = new[]
+        {
+            new Category { Name = "Technology", Description = "Software, hardware, and everything in between." },
+            new Category { Name = "Lifestyle", Description = "Tips and stories for everyday living." },
+            new Category { Name = "Science", Description = "Discoveries, research, and the natural world." },
+            new Category { Name = "Travel", Description = "Destinations, guides, and travel experiences." }
+        };
+        db.Categories.AddRange(categories);
+        return categories;
     }
 
-    // ── Tags ───────────────────────────────────────────────────────────────────
 
-    private static void SeedTags(AppDbContext db)
+    private static Tag[] SeedTags(AppDbContext db)
     {
-        db.Tags.AddRange(
-            new Tag { Id = 1, Name = "C#" },
-            new Tag { Id = 2, Name = ".NET" },
-            new Tag { Id = 3, Name = "EF Core" },
-            new Tag { Id = 4, Name = "ASP.NET" },
-            new Tag { Id = 5, Name = "Azure" },
-            new Tag { Id = 6, Name = "Docker" }
-        );
+        var tags = new[]
+        {
+            new Tag { Name = "C#" },
+            new Tag { Name = ".NET" },
+            new Tag { Name = "EF Core" },
+            new Tag { Name = "ASP.NET" },
+            new Tag { Name = "Azure" },
+            new Tag { Name = "Docker" }
+        };
+        db.Tags.AddRange(tags);
+        return tags;
     }
 
-    // ── Posts ───────────────────────────────────────────────────────────────────
 
-    private static void SeedPosts(AppDbContext db)
+
+    private static Post[] SeedPosts(AppDbContext db, Category[] categories, Tag[] tags)
     {
-        // Alice's posts
-        db.Posts.AddRange(
+        var tech = categories[0];
+        var lifestyle = categories[1];
+        var science = categories[2];
+        var travel = categories[3];
+
+        var csharp = tags[0];
+        var dotnet = tags[1];
+        var efcore = tags[2];
+        var aspnet = tags[3];
+
+        var posts = new[]
+        {
+            // Alice's posts
             new Post
             {
-                Id = 1,
                 Title = "Getting Started with EfCoreKit",
                 Content = "EfCoreKit provides a set of conventions and interceptors that eliminate boilerplate in EF Core projects. In this post we walk through the initial setup.",
                 Slug = "getting-started-with-efcorekit",
                 IsPublished = true,
-                CategoryId = 1,
-                UserId = AliceId
+                Category = tech,
+                UserId = AliceId,
+                PostTags = [new PostTag { Tag = dotnet }, new PostTag { Tag = efcore }]
             },
             new Post
             {
-                Id = 2,
                 Title = "Soft Deletes Made Simple",
                 Content = "With a single call to EnableSoftDelete(), EfCoreKit automatically converts delete commands to flag updates. No manual WHERE clauses needed.",
                 Slug = "soft-deletes-made-simple",
                 IsPublished = true,
-                CategoryId = 1,
-                UserId = AliceId
+                Category = tech,
+                UserId = AliceId,
+                PostTags = [new PostTag { Tag = efcore }, new PostTag { Tag = aspnet }]
             },
             new Post
             {
-                Id = 3,
                 Title = "Understanding Audit Trails",
                 Content = "Audit trails keep a record of every change. EfCoreKit's AuditInterceptor intercepts save commands and logs who changed what and when.",
                 Slug = "understanding-audit-trails",
                 IsPublished = false,
-                CategoryId = 3,
-                UserId = AliceId
-            }
-        );
-
-        // Bob's posts
-        db.Posts.AddRange(
+                Category = science,
+                UserId = AliceId,
+                PostTags = [new PostTag { Tag = csharp }, new PostTag { Tag = efcore }]
+            },
+            // Bob's posts
             new Post
             {
-                Id = 4,
                 Title = "Top 10 Weekend Getaways",
                 Content = "Looking for a quick escape? Here are our favourite weekend destinations that won't break the bank.",
                 Slug = "top-10-weekend-getaways",
                 IsPublished = true,
-                CategoryId = 4,
+                Category = travel,
                 UserId = BobId
             },
             new Post
             {
-                Id = 5,
                 Title = "Healthy Habits for Developers",
                 Content = "Long hours at the desk take a toll. These simple habits can make a big difference to your health and productivity.",
                 Slug = "healthy-habits-for-developers",
                 IsPublished = true,
-                CategoryId = 2,
-                UserId = BobId
+                Category = lifestyle,
+                UserId = BobId,
+                PostTags = [new PostTag { Tag = dotnet }]
             }
-        );
+        };
 
-        // Post-Tag associations
-        db.PostTags.AddRange(
-            new PostTag { PostId = 1, TagId = 2 },  // EfCoreKit → .NET
-            new PostTag { PostId = 1, TagId = 3 },  // EfCoreKit → EF Core
-            new PostTag { PostId = 2, TagId = 3 },  // Soft Deletes → EF Core
-            new PostTag { PostId = 2, TagId = 4 },  // Soft Deletes → ASP.NET
-            new PostTag { PostId = 3, TagId = 1 },  // Soft Deletes → C#
-            new PostTag { PostId = 3, TagId = 3 },  // Soft Deletes → EF Core
-            new PostTag { PostId = 5, TagId = 2 }   // Healthy Habits → .NET
-        );
+        db.Posts.AddRange(posts);
+        return posts;
     }
 
     // ── Comments ───────────────────────────────────────────────────────────────
 
-    private static void SeedComments(AppDbContext db)
+    private static void SeedComments(AppDbContext db, Post[] posts)
     {
         db.Comments.AddRange(
             new Comment
             {
-                Id = 1,
                 Body = "Great introduction! The interceptor approach is really elegant.",
-                PostId = 1,
+                Post = posts[0],
                 UserId = BobId
             },
             new Comment
             {
-                Id = 2,
                 Body = "Could you cover keyset pagination next?",
-                PostId = 1,
+                Post = posts[0],
                 UserId = AliceId
             },
             new Comment
             {
-                Id = 3,
-                Body = "This saved me hours of writing tenant filters by hand.",
-                PostId = 2,
+                Body = "This saved me hours of writing soft-delete filters by hand.",
+                Post = posts[1],
                 UserId = BobId
             },
             new Comment
             {
-                Id = 4,
                 Body = "Adding Bali to my list — thanks for the tips!",
-                PostId = 4,
+                Post = posts[3],
                 UserId = AliceId
             }
         );

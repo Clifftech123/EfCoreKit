@@ -92,6 +92,10 @@ public static class ServiceCollectionExtensions
 
         });
 
+        // Forward abstract DbContext to the concrete TContext so that
+        // Repository<T> (which depends on DbContext) can be resolved by DI.
+        services.AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>());
+
         return services;
     }
 }
