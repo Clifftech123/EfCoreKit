@@ -49,6 +49,10 @@ public static class WebApplicationExtensions
 
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Development only: drop & recreate so the schema always matches the model.
+        // Production apps should use EF Core migrations instead.
+        db.Database.EnsureDeleted();
         db.Database.EnsureCreated();
 
         // Seed sample data (users, categories, tags, posts, comments)
@@ -56,12 +60,6 @@ public static class WebApplicationExtensions
         await DatabaseSeeder.SeedAsync(db, userManager);
 
         app.MapOpenApi();
-        app.MapScalarApiReference(options =>
-        {
-            options.Title = "EfCoreKit Sample API";
-            options.Theme = ScalarTheme.BluePlanet;
-            options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-            options.AddServer(new ScalarServer("https://localhost:7000"));
-        });
+        app.MapScalarApiReference();
     }
 }

@@ -1,6 +1,4 @@
-using EfCoreKit.Exceptions;
 using EfCoreKit.Sample.WebApi.Application.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 
 namespace EfCoreKit.Sample.WebApi.Controllers;
 
@@ -17,7 +15,7 @@ namespace EfCoreKit.Sample.WebApi.Controllers;
 /// </list>
 /// </summary>
 // Require a valid JWT on all post endpoints.
-[Authorize]
+
 [ApiController]
 [Route("api/[controller]")]
 public class PostsController : ControllerBase
