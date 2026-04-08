@@ -22,9 +22,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(u => u.NormalizedUserName).HasMaxLength(256);
         b.Property(u => u.Email).HasMaxLength(256);
         b.Property(u => u.NormalizedEmail).HasMaxLength(256);
-        b.Property(u => u.TenantId).HasMaxLength(100).IsRequired();
 
-        // Identity internal join tables — managed by UserManager, never queried directly
+        // Identity internal join tables
         b.HasMany<IdentityUserClaim<Guid>>().WithOne().HasForeignKey(uc => uc.UserId).IsRequired();
         b.HasMany<IdentityUserLogin<Guid>>().WithOne().HasForeignKey(ul => ul.UserId).IsRequired();
         b.HasMany<IdentityUserToken<Guid>>().WithOne().HasForeignKey(ut => ut.UserId).IsRequired();

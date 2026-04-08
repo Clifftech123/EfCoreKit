@@ -3,15 +3,12 @@ using EfCoreKit.Interfaces;
 namespace EfCoreKit.Entities;
 
 /// <summary>
-/// Kitchen-sink base class: audit + soft-delete + multi-tenancy + optimistic concurrency.
+/// Kitchen-sink base class: audit + soft-delete + optimistic concurrency.
 /// Inherit when you want every EfCoreKit feature wired up with zero interface implementation.
 /// </summary>
 /// <typeparam name="TKey">The primary key type.</typeparam>
-public abstract class FullEntity<TKey> : SoftDeletableEntity<TKey>, ITenantEntity, IConcurrencyAware
+public abstract class FullEntity<TKey> : SoftDeletableEntity<TKey>, IConcurrencyAware
 {
-    /// <inheritdoc />
-    public string? TenantId { get; set; }
-
     /// <summary>
     /// Optimistic concurrency token automatically managed by the database.
     /// EF Core raises <see cref="EfCoreKit.Exceptions.ConcurrencyConflictException"/> when

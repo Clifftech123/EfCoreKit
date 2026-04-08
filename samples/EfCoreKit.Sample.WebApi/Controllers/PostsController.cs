@@ -12,14 +12,11 @@ namespace EfCoreKit.Sample.WebApi.Controllers;
 ///   <item><b>Specifications</b>      — typed classes + <see cref="SpecificationBuilder{T}"/> inline</item>
 ///   <item><b>Pagination</b>          — <c>ToPagedAsync</c> for offset paging</item>
 ///   <item><b>Soft delete / restore</b> — IgnoreQueryFilters to find &amp; restore deleted rows</item>
-///   <item><b>Multi-tenancy</b>       — TenantId automatically scoped via X-Tenant-Id header</item>
 ///   <item><b>Optimistic concurrency</b> — RowVersion / ConcurrencyConflictException</item>
 ///   <item><b>Spec combinators</b>    — <c>.And()</c> to compose two specs</item>
 /// </list>
 /// </summary>
 // Require a valid JWT on all post endpoints.
-// The token's tenant_id claim is what HttpContextTenantProvider reads —
-// so every query is automatically scoped to the caller's tenant.
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -118,7 +115,6 @@ public class PostsController : ControllerBase
     // ── POST /api/posts ────────────────────────────────────────────────────────
     // Demonstrates IUnitOfWork: Post and PostTag entries are written atomically
     // in a single CommitAsync call.
-    // TenantInterceptor automatically stamps TenantId from the X-Tenant-Id header.
     // AuditInterceptor automatically stamps CreatedAt/CreatedBy.
     [HttpPost]
     public async Task<IActionResult> Create(CreatePostRequest request, CancellationToken ct)
@@ -225,12 +221,12 @@ public class PostsController : ControllerBase
 
     private static PostSummaryResponse ToSummaryResponse(Post p) => new(
         p.Id, p.Title, p.Slug, p.IsPublished,
-        p.Category?.Name, p.CreatedAt, p.TenantId);
+        p.Category?.Name, p.CreatedAt);
 
     private static PostResponse ToDetailResponse(Post p) => new(
         p.Id, p.Title, p.Content, p.Slug, p.IsPublished,
         p.CategoryId, p.Category?.Name,
         p.PostTags.Select(pt => new TagResponse(pt.TagId, pt.Tag?.Name ?? "")).ToList(),
         p.CreatedAt, p.CreatedBy, p.UpdatedAt, p.UpdatedBy,
-        p.TenantId, p.RowVersion);
+        p.RowVersion);
 }

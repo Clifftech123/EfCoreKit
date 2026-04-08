@@ -62,25 +62,4 @@ public static class ModelBuilderExtensions
         SoftDeleteQueryFilter.Apply(modelBuilder);
         return modelBuilder;
     }
-
-    /// <summary>
-    /// Configures tenant global query filters for all entities implementing <see cref="ITenantEntity"/>.
-    /// </summary>
-    /// <param name="modelBuilder">The model builder.</param>
-    /// <param name="tenantProvider">The tenant provider.</param>
-    /// <returns>The model builder for chaining.</returns>
-    /// <example>
-    /// <code>
-    /// protected override void OnModelCreating(ModelBuilder modelBuilder)
-    /// {
-    ///     base.OnModelCreating(modelBuilder);
-    ///     modelBuilder.ApplyTenantFilters(_tenantProvider);
-    /// }
-    /// </code>
-    /// </example>
-    public static ModelBuilder ApplyTenantFilters(this ModelBuilder modelBuilder, ITenantProvider? tenantProvider)
-    {
-        TenantQueryFilter.Apply(modelBuilder, tenantProvider);
-        return modelBuilder;
-    }
 }

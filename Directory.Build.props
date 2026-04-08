@@ -1,4 +1,6 @@
 <Project>
+
+  <!-- Compiler Settings -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -6,11 +8,49 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Authors>EfCoreKit</Authors>
-    <Company>EfCoreKit</Company>
-    <Product>EfCoreKit</Product>
-    <Copyright>Copyright © 2024 EfCoreKit</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>efcore;entityframework;bulk;softdelete;audit;pagination;multitenancy</PackageTags>
   </PropertyGroup>
+
+  <!-- Package Identity & Metadata -->
+  <PropertyGroup>
+    <Authors>Isaiah Clifford Opoku</Authors>
+    <Company>CliffTechSolutions</Company>
+    <Product>EfCoreKit</Product>
+    <Copyright>Copyright © Isaiah Clifford Opoku 2026</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>efcore;entityframework;soft-delete;audit;pagination;multi-tenancy;repository;specification;unit-of-work</PackageTags>
+    <PackageProjectUrl>https://github.com/Clifftech123/EfCoreKit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Clifftech123/EfCoreKit</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <!-- Symbols, Source Link & Debugging -->
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- Build Quality -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- MinVer — drives versioning from git tags (prefix: v) -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+
+  <!-- Release optimizations -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <!-- MinVer tool reference (applies to all projects) -->
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="All" />
+  </ItemGroup>
+
 </Project>

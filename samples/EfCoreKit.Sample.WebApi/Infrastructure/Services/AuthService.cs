@@ -27,7 +27,6 @@ public sealed class AuthService(
             Email = request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,
-            TenantId = request.TenantId,
             IsActive = true,
             EmailConfirmed = true
         };
@@ -153,9 +152,7 @@ public sealed class AuthService(
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            // tenant_id — read by HttpContextTenantProvider to scope every EfCoreKit query
-            new Claim("tenant_id", user.TenantId)
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(
@@ -218,5 +215,5 @@ public sealed class AuthService(
         int.Parse(config["Jwt:RefreshTokenExpiryDays"] ?? "7");
 
     private static CurrentUserResponse ToCurrentUserResponse(User u) =>
-        new(u.Id, u.FullName, u.Email!, u.TenantId, u.LastLoginAt);
+        new(u.Id, u.FullName, u.Email!, u.LastLoginAt);
 }
