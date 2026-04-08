@@ -28,8 +28,16 @@ jobs:
         languages: csharp
         queries: security-extended
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
