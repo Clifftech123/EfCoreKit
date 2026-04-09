@@ -52,13 +52,6 @@ jobs:
         --api-key ${{ secrets.NUGET_API_KEY }}
         --skip-duplicate
 
-    - name: Publish symbols to NuGet.org
-      run: >
-        dotnet nuget push ./artifacts/*.snupkg
-        --source https://api.nuget.org/v3/index.json
-        --api-key ${{ secrets.NUGET_API_KEY }}
-        --skip-duplicate
-
     - name: Publish to GitHub Packages
       run: >
         dotnet nuget push ./artifacts/*.nupkg
@@ -117,7 +110,6 @@ jobs:
 
           - Soft delete with global query filters
           - Audit trail (CreatedAt, UpdatedAt, CreatedBy, UpdatedBy)
-          - Multi-tenancy support
           - Repository + Unit of Work pattern
           - Specification pattern
           - Offset & keyset pagination
@@ -125,7 +117,6 @@ jobs:
           - Structured exceptions
         files: |
           ./artifacts/*.nupkg
-          ./artifacts/*.snupkg
         draft: false
         prerelease: false
       env:
