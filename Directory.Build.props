@@ -17,7 +17,7 @@
     <Product>EfCoreKit</Product>
     <Copyright>Copyright © Isaiah Clifford Opoku 2026</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>efcore;entityframework;soft-delete;audit;pagination;multi-tenancy;repository;specification;unit-of-work</PackageTags>
+    <PackageTags>efcore;entity-framework-core;soft-delete;audit-trail;pagination;repository-pattern;specification-pattern;unit-of-work;dynamic-filters;orm-extensions;dotnet;csharp</PackageTags>
     <PackageProjectUrl>https://github.com/Clifftech123/EfCoreKit</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Clifftech123/EfCoreKit</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -25,11 +25,9 @@
 
   <!-- Symbols, Source Link & Debugging -->
   <PropertyGroup>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugType>embedded</DebugType>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <!-- Build Quality -->
