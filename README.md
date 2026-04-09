@@ -9,7 +9,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/Clifftech123/EfCoreKit/ci.yml?branch=develop&logo=github&label=Build)](https://github.com/Clifftech123/EfCoreKit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**.NET 8 / 9 / 10** · **EF Core 8.x / 9.x / 10.x** · **Works with any EF Core-supported database**
+**Works with any EF Core-supported database**
 
 </div>
 
@@ -52,7 +52,7 @@ Every .NET project with EF Core ends up writing the same plumbing: soft delete f
 dotnet add package EfCoreKit
 ```
 
-One package — everything is included. No separate installs needed.
+One package  everything is included. No separate installs needed.
 
 ---
 
