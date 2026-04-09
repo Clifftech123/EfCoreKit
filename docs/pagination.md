@@ -135,3 +135,7 @@ public sealed class KeysetPagedResult<T>
 | **Infinite scroll** | Possible | Ideal |
 | **Stable with concurrent inserts** | Can skip / duplicate rows | Always consistent |
 | **Requires ordered query** | Recommended | Required |
+
+---
+
+[← Specification Pattern](specifications.md) | [Dynamic Filters →](dynamic-filters.md)

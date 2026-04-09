@@ -187,3 +187,7 @@ catch (InvalidFilterException ex)
     return BadRequest(ex.Message);
 }
 ```
+
+---
+
+**Previous:** [← DbContext Utilities](dbcontext-utilities.md)

@@ -73,3 +73,7 @@ await context.TruncateAsync<AuditLog>();
 | `ExecuteInTransactionAsync<T>(Func<Task<T>>)` | Same, returning a value |
 | `DetachAll()` | Clear the change tracker |
 | `TruncateAsync<T>()` | Truncate a table by entity type |
+
+---
+
+[← Query Helpers](query-helpers.md) | [Exceptions →](exceptions.md)

@@ -267,3 +267,7 @@ var spec = new SpecificationBuilder<Product>()
 
 var products = await context.Products.ApplySpecification(spec).ToListAsync();
 ```
+
+---
+
+[← Dynamic Filters](dynamic-filters.md) | [DbContext Utilities →](dbcontext-utilities.md)

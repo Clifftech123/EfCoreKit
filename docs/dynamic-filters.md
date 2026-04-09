@@ -158,3 +158,7 @@ var page = await context.Customers
     .ApplySorts(sorts)
     .ToPagedAsync(page: 1, pageSize: 20);
 ```
+
+---
+
+[← Pagination](pagination.md) | [Query Helpers →](query-helpers.md)

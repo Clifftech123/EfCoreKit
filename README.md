@@ -35,7 +35,6 @@ Every .NET project with EF Core ends up writing the same plumbing: soft delete f
 | **Entity Configuration Bases** | Fluent config base classes that auto-wire keys, indexes, and soft-delete defaults |
 | **Soft Delete** | Mark records as deleted with automatic global query filters; restore or hard-delete on demand |
 | **Audit Trail** | Auto-stamp `CreatedAt/By`, `UpdatedAt/By`; optional field-level `AuditLog` history |
-| **Multi-Tenancy** | Automatic tenant filtering so each tenant only sees their own data |
 | **Repository + Unit of Work** | Generic `IRepository<T>` / `IReadRepository<T>` backed by `IUnitOfWork` |
 | **Specification Pattern** | Composable query specs with `And()` / `Or()` combinators, projection, and multi-column ordering |
 | **Pagination** | Offset (`ToPagedAsync`) and keyset/cursor (`ToKeysetPagedAsync`) pagination with `PagedResult<T>` |
@@ -250,7 +249,6 @@ await context.TruncateAsync<AuditLog>();
 | [Base Entities](docs/base-entities.md) | Entity hierarchy, configuration base classes |
 | [Soft Delete](docs/soft-delete.md) | ISoftDeletable, lifecycle methods, restoring records |
 | [Audit Trail](docs/audit-trail.md) | IAuditable, IFullAuditable, field-level AuditLog |
-| [Multi-Tenancy](docs/multi-tenancy.md) | ITenantEntity, automatic filtering, tenant validation |
 | [Repository & Unit of Work](docs/repository-uow.md) | IRepository, IReadRepository, IUnitOfWork |
 | [Specification Pattern](docs/specifications.md) | Spec classes, And/Or combinators, projection specs |
 | [Pagination](docs/pagination.md) | Offset and keyset pagination, PagedResult |
