@@ -8,7 +8,7 @@ EfCoreKit provides a hierarchy of ready-made base classes so you don't have to r
 BaseEntity<TKey>
 └── AuditableEntity<TKey>      (+ CreatedAt/By, UpdatedAt/By)
     └── SoftDeletableEntity<TKey>   (+ IsDeleted, DeletedAt/By)
-        └── FullEntity<TKey>        (+ TenantId, RowVersion)
+        └── FullEntity<TKey>        (+ RowVersion)
 ```
 
 Each level adds the interface properties for the corresponding feature. All levels have an `int`-key convenience alias (e.g. `BaseEntity` = `BaseEntity<int>`).
@@ -71,13 +71,12 @@ public class Customer : SoftDeletableEntity { }
 
 ### FullEntity&lt;TKey&gt; / FullEntity
 
-Implements everything: `IAuditable`, `ISoftDeletable`, `ITenantEntity`, and `IConcurrencyAware`.
+Implements `IAuditable`, `ISoftDeletable`, and `IConcurrencyAware`.
 
 ```csharp
-public abstract class FullEntity<TKey> : SoftDeletableEntity<TKey>, ITenantEntity, IConcurrencyAware
+public abstract class FullEntity<TKey> : SoftDeletableEntity<TKey>, IConcurrencyAware
 {
-    public string? TenantId    { get; set; }
-    public byte[]  RowVersion  { get; set; } = [];
+    public byte[] RowVersion { get; set; } = [];
 }
 ```
 

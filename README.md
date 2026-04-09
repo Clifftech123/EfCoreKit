@@ -21,9 +21,9 @@ Every .NET project with EF Core ends up writing the same plumbing: soft delete f
 
 **Design goals:**
 
-- **Zero lock-in** — Uses standard EF Core interceptors and global query filters. Your entities stay plain C# classes, your `DbContext` stays a normal `DbContext`, and you can remove EfCoreKit at any time without rewriting your data layer.
-- **Opt-in everything** — Enable only the features you need. Nothing runs unless you turn it on.
-- **No custom ORM** — This is not a replacement for EF Core. It's a set of extensions that plug into the pipeline you already use.
+- **Zero lock-in**  Uses standard EF Core interceptors and global query filters. Your entities stay plain C# classes, your `DbContext` stays a normal `DbContext`, and you can remove EfCoreKit at any time without rewriting your data layer.
+- **Opt-in everything**  Enable only the features you need. Nothing runs unless you turn it on.
+- **No custom ORM**  This is not a replacement for EF Core. It's a set of extensions that plug into the pipeline you already use.
 
 ---
 
@@ -42,7 +42,7 @@ Every .NET project with EF Core ends up writing the same plumbing: soft delete f
 | **Query Helpers** | `ExistsAsync`, `GetByIdOrThrowAsync`, `WhereIf`, `OrderByDynamic`, and more |
 | **DbContext Utilities** | `ExecuteInTransactionAsync`, `DetachAll`, `TruncateAsync<T>` |
 | **Slow Query Logging** | Logs warnings for queries exceeding a configurable threshold |
-| **Structured Exceptions** | `ConcurrencyConflictException`, `DuplicateEntityException`, `TenantMismatchException` |
+| **Structured Exceptions** | `EntityNotFoundException`, `ConcurrencyConflictException`, `DuplicateEntityException`, `InvalidFilterException` |
 
 ---
 
@@ -67,9 +67,7 @@ builder.Services.AddEfCoreExtensions<AppDbContext>(
         .EnableSoftDelete()
         .EnableAuditTrail()               // basic: stamps CreatedAt/By, UpdatedAt/By
         // .EnableAuditTrail(fullLog: true) // alternative: also writes field-level AuditLog rows
-        .EnableMultiTenancy()
         .UseUserProvider<HttpContextUserProvider>()
-        .UseTenantProvider<HttpContextTenantProvider>()
         .LogSlowQueries(TimeSpan.FromSeconds(1)));
 ```
 
@@ -85,7 +83,7 @@ public class Order : AuditableEntity<Guid> { }
 // Soft-deletable + audited
 public class Customer : SoftDeletableEntity { }
 
-// Full — soft-delete + audit + tenant + row version
+// Full — soft-delete + audit + row version
 public class Invoice : FullEntity { }
 ```
 
@@ -140,21 +138,6 @@ var orders = await dbSet.FindAsync(spec);
 
 ---
 
-## What Happens Behind the Scenes
-
-| You do this | EfCoreKit does this |
-|-------------|------------------------------|
-| Call `SaveChangesAsync()` | Stamps `CreatedAt`/`UpdatedAt`, sets `CreatedBy`/`UpdatedBy` from your user provider |
-| Delete an entity implementing `ISoftDeletable` | Converts to a soft delete — sets `IsDeleted`, `DeletedAt`, `DeletedBy` instead of removing the row |
-| Query any `DbSet` | Automatically filters out soft-deleted rows and scopes to the current tenant |
-| Add a new tenant entity | Auto-assigns `TenantId` from your tenant provider |
-| Modify a tenant entity you don't own | Throws `TenantMismatchException` before hitting the database |
-| Save with a stale row version | Throws `ConcurrencyConflictException` wrapping `DbUpdateConcurrencyException` |
-| Run a slow query | Logs a warning with the SQL and duration |
-| Save `IFullAuditable` entities with `fullLog: true` | Writes an `AuditLog` row for every changed property |
-
----
-
 ## Soft Delete Lifecycle
 
 ```csharp
@@ -187,16 +170,16 @@ var page = await context.Orders
     .OrderBy(o => o.CreatedAt)
     .ToPagedAsync(page: 2, pageSize: 25);
 
-Console.WriteLine($"Page {page.CurrentPage} of {page.TotalPages} ({page.TotalCount} total)");
+Console.WriteLine($"Page {page.Page} of {page.TotalPages} ({page.TotalCount} total)");
 
 // Keyset / cursor pagination (no OFFSET — scales to millions of rows)
 var first = await context.Orders
-    .OrderBy(o => o.CreatedAt).ThenBy(o => o.Id)
-    .ToKeysetPagedAsync(pageSize: 25, afterId: null);
+    .OrderBy(o => o.Id)
+    .ToKeysetPagedAsync(o => o.Id, cursor: null, pageSize: 25);
 
 var next = await context.Orders
-    .OrderBy(o => o.CreatedAt).ThenBy(o => o.Id)
-    .ToKeysetPagedAsync(pageSize: 25, afterId: first.NextCursor);
+    .OrderBy(o => o.Id)
+    .ToKeysetPagedAsync(o => o.Id, cursor: int.Parse(first.NextCursor!), pageSize: 25);
 ```
 
 ---
