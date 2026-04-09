@@ -1,4 +1,4 @@
-using EfCoreKit.Interfaces;
+
 
 namespace EfCoreKit.Entities;
 
@@ -11,7 +11,7 @@ public abstract class FullEntity<TKey> : SoftDeletableEntity<TKey>, IConcurrency
 {
     /// <summary>
     /// Optimistic concurrency token automatically managed by the database.
-    /// EF Core raises <see cref="EfCoreKit.Exceptions.ConcurrencyConflictException"/> when
+    /// EF Core raises <see cref="ConcurrencyConflictException"/> when
     /// a stale version is detected during update.
     /// </summary>
     public byte[] RowVersion { get; set; } = [];
