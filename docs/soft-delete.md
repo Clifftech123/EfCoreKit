@@ -162,10 +162,6 @@ await context.SaveChangesAsync();
 
 When an entity implements both `IAuditable` and `ISoftDeletable` (as `SoftDeletableEntity` does), a soft delete triggers a `Modified` state change — so `UpdatedAt` and `UpdatedBy` are also stamped at the moment of deletion.
 
-## Combining with Multi-Tenancy
-
-Soft-deleted rows from other tenants remain invisible. The tenant filter and soft-delete filter are both applied independently.
-
 ---
 
 [← Base Entities](base-entities.md) | [Audit Trail →](audit-trail.md)

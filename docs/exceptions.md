@@ -10,7 +10,6 @@ Exception
     ├── EntityNotFoundException
     ├── ConcurrencyConflictException
     ├── DuplicateEntityException
-    ├── TenantMismatchException
     └── InvalidFilterException
 ```
 
@@ -132,33 +131,6 @@ Messages produced:
 - `new DuplicateEntityException("Customer")` → `"A Customer with the same unique key already exists."`
 - `new DuplicateEntityException("Customer", "Email")` → `"A Customer with the same 'Email' already exists."`
 - `new DuplicateEntityException("Customer", "Email", email)` → `"A Customer with Email = 'jane@example.com' already exists."`
-
----
-
-## TenantMismatchException
-
-Thrown by `TenantInterceptor` when a save is attempted on an entity that belongs to a different tenant than the current request.
-
-```csharp
-public sealed class TenantMismatchException : EfCoreException
-{
-    public string? ExpectedTenant { get; }  // current tenant from ITenantProvider
-    public string? ActualTenant   { get; }  // tenant on the entity
-}
-```
-
-```csharp
-try
-{
-    await context.SaveChangesAsync();
-}
-catch (TenantMismatchException ex)
-{
-    // ex.ExpectedTenant == "tenant-abc"
-    // ex.ActualTenant   == "tenant-xyz"
-    return Forbid();
-}
-```
 
 ---
 

@@ -38,9 +38,7 @@ builder.Services.AddEfCoreExtensions<AppDbContext>(
         .EnableSoftDelete()
         .EnableAuditTrail()               // basic: stamps CreatedAt/By, UpdatedAt/By
         // .EnableAuditTrail(fullLog: true) // alternative: also writes field-level AuditLog rows
-        .EnableMultiTenancy()
         .UseUserProvider<HttpContextUserProvider>()
-        .UseTenantProvider<HttpContextTenantProvider>()
         .LogSlowQueries(TimeSpan.FromSeconds(1)));
 ```
 
@@ -64,14 +62,14 @@ public class Order : AuditableEntity<Guid> { }
 // Soft-deletable + audited, int PK
 public class Customer : SoftDeletableEntity { }
 
-// Full — soft-delete + audit + tenant + row version
+// Full — soft-delete + audit + row version
 public class Invoice : FullEntity { }
 ```
 
 You can also implement interfaces directly if you prefer to control your own hierarchy:
 
 ```csharp
-public class Customer : IAuditable, ISoftDeletable, ITenantEntity
+public class Customer : IAuditable, ISoftDeletable
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -84,8 +82,6 @@ public class Customer : IAuditable, ISoftDeletable, ITenantEntity
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
-
-    public string? TenantId { get; set; }
 }
 ```
 
@@ -129,20 +125,6 @@ public class HttpContextUserProvider : IUserProvider
 }
 ```
 
-## 6. Implement ITenantProvider (if using multi-tenancy)
-
-```csharp
-public class HttpContextTenantProvider : ITenantProvider
-{
-    private readonly IHttpContextAccessor _accessor;
-
-    public HttpContextTenantProvider(IHttpContextAccessor accessor) => _accessor = accessor;
-
-    public string? GetCurrentTenantId()
-        => _accessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
-}
-```
-
 ## What Happens Automatically
 
 Once configured, EfCoreKit handles the following via EF Core interceptors:
@@ -151,8 +133,7 @@ Once configured, EfCoreKit handles the following via EF Core interceptors:
 |---------|-------------|------|
 | **Audit Trail** | Sets `CreatedAt`/`CreatedBy` on insert, `UpdatedAt`/`UpdatedBy` on update | Every `SaveChanges` / `SaveChangesAsync` |
 | **Soft Delete** | Converts `DELETE` to `UPDATE SET IsDeleted = true` | When deleting an `ISoftDeletable` entity |
-| **Multi-Tenancy** | Auto-assigns `TenantId` on insert, validates ownership on update | Every `SaveChanges` / `SaveChangesAsync` |
-| **Query Filters** | Hides soft-deleted rows and scopes queries to the current tenant | Every LINQ query |
+| **Query Filters** | Hides soft-deleted rows | Every LINQ query |
 | **Slow Query Logging** | Logs a warning for queries exceeding the threshold | After each database command |
 | **Concurrency** | Throws `ConcurrencyConflictException` on stale row version conflicts | Every `SaveChanges` / `SaveChangesAsync` |
 
@@ -161,7 +142,6 @@ Once configured, EfCoreKit handles the following via EF Core interceptors:
 - [Base Entities](base-entities.md) — Entity class hierarchy and configuration bases
 - [Soft Delete](soft-delete.md) — Lifecycle methods, restoring records, cascade delete
 - [Audit Trail](audit-trail.md) — Timestamps, user tracking, field-level AuditLog
-- [Multi-Tenancy](multi-tenancy.md) — Tenant isolation and filtering
 - [Repository & Unit of Work](repository-uow.md) — Generic repository and transaction management
 - [Specification Pattern](specifications.md) — Composable, reusable query logic
 - [Pagination](pagination.md) — Offset and keyset/cursor pagination
