@@ -177,3 +177,7 @@ var page = await context.Orders.ToPagedFromSpecAsync(
 ```
 
 `ToPagedFromSpecAsync` ignores any `Skip`/`Take` set on the spec — pagination is controlled by the `page`/`pageSize` parameters.
+
+---
+
+[← Repository & Unit of Work](repository-uow.md) | [Pagination →](pagination.md)

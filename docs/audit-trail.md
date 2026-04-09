@@ -168,3 +168,7 @@ The audit interceptor marks `CreatedAt` and `CreatedBy` as `IsModified = false` 
 ## Combining with Soft Delete
 
 When an entity implements both `IAuditable` and `ISoftDeletable`, a soft delete triggers a `Modified` state change — so `UpdatedAt` and `UpdatedBy` are stamped at the moment of deletion.
+
+---
+
+[← Soft Delete](soft-delete.md) | [Repository & Unit of Work →](repository-uow.md)

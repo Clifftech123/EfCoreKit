@@ -165,3 +165,7 @@ When an entity implements both `IAuditable` and `ISoftDeletable` (as `SoftDeleta
 ## Combining with Multi-Tenancy
 
 Soft-deleted rows from other tenants remain invisible. The tenant filter and soft-delete filter are both applied independently.
+
+---
+
+[← Base Entities](base-entities.md) | [Audit Trail →](audit-trail.md)

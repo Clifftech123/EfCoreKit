@@ -169,3 +169,7 @@ Once configured, EfCoreKit handles the following via EF Core interceptors:
 - [Query Helpers](query-helpers.md) — WhereIf, OrderByDynamic, DbSet extensions
 - [DbContext Utilities](dbcontext-utilities.md) — Transactions, DetachAll, TruncateAsync
 - [Exceptions](exceptions.md) — All exception types, when they're thrown, what to catch
+
+---
+
+**Next:** [Base Entities →](base-entities.md)

@@ -181,3 +181,7 @@ catch (ConcurrencyConflictException ex)
     // ex.EntityId   — primary key of the conflicting row
 }
 ```
+
+---
+
+[← Getting Started](getting-started.md) | [Soft Delete →](soft-delete.md)

@@ -163,3 +163,7 @@ var orders = await repo.FindAsync(spec, ct);
 ```
 
 See [Specification Pattern](specifications.md) for details.
+
+---
+
+[← Audit Trail](audit-trail.md) | [Specification Pattern →](specifications.md)
