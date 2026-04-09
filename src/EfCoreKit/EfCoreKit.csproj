@@ -12,10 +12,6 @@
     <PackageTags>efcore;entity-framework-core;entityframeworkcore;soft-delete;softdelete;audit-trail;audit;repository-pattern;repository;unit-of-work;specification-pattern;specification;pagination;keyset-pagination;cursor-pagination;dynamic-filters;query-helpers;data-access;orm-extensions;dotnet;csharp;boilerplate</PackageTags>
     <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>
-    <DebugType>portable</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
