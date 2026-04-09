@@ -17,6 +17,9 @@ jobs:
   publish-nuget:
     name: Publish to NuGet.org
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
     - name: Checkout code
