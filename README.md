@@ -1,17 +1,13 @@
-<div align="center">
-
 # EfCoreKit
 
-**EF Core extensions that eliminate boilerplate — so you can focus on building features.**
+**EF Core extensions that eliminate boilerplate  so you can focus on building features.**
 
 [![NuGet](https://img.shields.io/nuget/v/EfCoreKit?logo=nuget&label=NuGet)](https://www.nuget.org/packages/EfCoreKit)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/EfCoreKit?logo=nuget&label=Downloads)](https://www.nuget.org/packages/EfCoreKit)
 [![Build](https://img.shields.io/github/actions/workflow/status/Clifftech123/EfCoreKit/ci.yml?branch=develop&logo=github&label=Build)](https://github.com/Clifftech123/EfCoreKit/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Works with any EF Core-supported database**
-
-</div>
+*Works with any EF Core-supported database**
 
 ---
 

@@ -56,6 +56,13 @@ jobs:
         --api-key ${{ secrets.NUGET_API_KEY }}
         --skip-duplicate
 
+    - name: Publish to GitHub Packages
+      run: >
+        dotnet nuget push ./artifacts/*.nupkg
+        --source https://nuget.pkg.github.com/Clifftech123/index.json
+        --api-key ${{ secrets.GITHUB_TOKEN }}
+        --skip-duplicate
+
   create-release:
     name: Create GitHub Release
     needs: publish-nuget

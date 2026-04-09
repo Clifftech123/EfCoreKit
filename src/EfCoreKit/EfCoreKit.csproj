@@ -4,13 +4,18 @@
     <PackageId>EfCoreKit</PackageId>
     <!-- Version is managed by MinVer via git tags (e.g. v1.0.0) -->
     <Description>
-      EF Core extensions that eliminate boilerplate — soft delete, audit trail, multi-tenancy,
+      EF Core extensions that eliminate boilerplate — soft delete, audit trail,
       repository pattern, unit of work, specification pattern, offset and keyset pagination,
       dynamic filters, DbContext utilities, and structured exceptions.
       Install one package and everything is included.
     </Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>efcore;entity-framework-core;entityframeworkcore;soft-delete;softdelete;audit-trail;audit;repository-pattern;repository;unit-of-work;specification-pattern;specification;pagination;keyset-pagination;cursor-pagination;dynamic-filters;query-helpers;data-access;orm-extensions;dotnet;csharp;boilerplate</PackageTags>
+    <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\README.md" Pack="false" />
+    <None Include="..\..\README.nuget.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
